@@ -46,6 +46,8 @@ class VideoSession:
     def __init__(self,spec: SourceSpec,root: Path,spawn=spawn_decoder):
         self.spec,self.root,self.spawn = spec,root,spawn
         self.task = None
+        self.stopping = False
+        self.stop_lock = asyncio.Lock()
         self.state = "idle"
         self.error = None
         self.latest = None
@@ -59,6 +61,8 @@ class VideoSession:
         return self.task is not None and not self.task.done()
 
     def start(self):
+        if self.stopping:
+            raise SourceBusy
         if self.active():
             return
         self.latest = None
@@ -69,12 +73,17 @@ class VideoSession:
         self.task = asyncio.create_task(self._run(),name=f"video-{self.spec.source_id}")
 
     async def stop(self):
-        if self.active():
-            self.task.cancel()
-            await asyncio.gather(self.task,return_exceptions=True)
-        self.latest = None
-        self.arrivals.clear()
-        self.state = "stopped"
+        async with self.stop_lock:
+            self.stopping = True
+            try:
+                if self.active():
+                    self.task.cancel()
+                    await asyncio.gather(self.task,return_exceptions=True)
+                self.latest = None
+                self.arrivals.clear()
+                self.state = "stopped"
+            finally:
+                self.stopping = False
 
     def take_latest(self):
         frame,self.latest = self.latest,None
@@ -96,7 +105,10 @@ class VideoSession:
                         if not (1<=width<=MAX_WIDTH and 1<=height<=MAX_HEIGHT and
                                 1<=size<=MAX_JPEG and number==sequence+1 and 0<decoded<=monotonic_ns()):
                             raise CaptureError("invalid_decoder_protocol")
-                        jpeg = await process.stdout.readexactly(size)
+                        try:
+                            jpeg = await process.stdout.readexactly(size)
+                        except asyncio.IncompleteReadError:
+                            raise CaptureError("invalid_decoder_protocol") from None
                         if not jpeg.startswith(b"\xff\xd8") or not jpeg.endswith(b"\xff\xd9"):
                             raise CaptureError("invalid_decoder_protocol")
                 except asyncio.IncompleteReadError as exc:
