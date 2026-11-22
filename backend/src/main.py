@@ -11,6 +11,9 @@ from src.ingestion.engine import IngestionEngine
 from src.ingestion.routes import router as ingestion_router
 from src.pipeline.orchestrator import PipelineOrchestrator
 from src.pipeline.routes import router as pipeline_router
+from src.archive.store import ArchiveStore
+from src.archive.service import ArchiveService
+from src.archive.routes import router as archive_router
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +24,10 @@ def create_app(settings=None):
         app.state.engine = make_engine(app.state.settings)
         app.state.ws_count = 0
         app.state.pipeline = PipelineOrchestrator()
-        app.state.ingestion = IngestionEngine(processor=app.state.pipeline.process)
+        app.state.archive = ArchiveService(ArchiveStore(app.state.engine), app.state.settings.durable_archive)
+        async def process(observation):
+            return await app.state.archive.process(observation, app.state.pipeline, app.state.ingestion)
+        app.state.ingestion = IngestionEngine(processor=process, timeout=8.0 if app.state.archive.enabled else 1.0)
         try:
             app.state.ingestion.start()
             yield
@@ -35,6 +41,7 @@ def create_app(settings=None):
 
     app.include_router(ingestion_router)
     app.include_router(pipeline_router)
+    app.include_router(archive_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -57,6 +64,7 @@ def create_app(settings=None):
             "stream_manager": "not_implemented", "inference_engine": "not_loaded",
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
+            "archive": request.app.state.archive.status(database, schema),
             "operation_mode": request.app.state.settings.operation_mode,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }, status_code=200 if ready else 503)

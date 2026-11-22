@@ -3,7 +3,7 @@ from sqlalchemy import DateTime, String, JSON, ForeignKey, CheckConstraint, Floa
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import create_engine
 
-SCHEMA_REVISION = "0001_foundation"
+SCHEMA_REVISION = "0002_pipeline_archive"
 
 class Base(DeclarativeBase):
     pass
@@ -45,3 +45,14 @@ def readiness(engine):
             return "online", "unverified"
         except Exception:
             return "offline", "unverified"
+
+class PipelineArchive(Base):
+    __tablename__ = "pipeline_archive"
+    __table_args__ = (CheckConstraint("origin = 'synthetic'", name="ck_pipeline_archive_origin"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(36), unique=True)
+    intersection_code: Mapped[str] = mapped_column(String(80), index=True)
+    origin: Mapped[str] = mapped_column(String(16))
+    payload: Mapped[dict] = mapped_column(JSON)
+    digest: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)

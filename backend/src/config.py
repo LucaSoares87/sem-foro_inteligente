@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     postgres_user: str = "traffic"
     postgres_password: SecretStr = SecretStr("")
     database_url: SecretStr | None = None
+    archive_enabled: bool | None = None
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     @model_validator(mode="after")
@@ -24,6 +25,10 @@ class Settings(BaseSettings):
         elif not self.postgres_password.get_secret_value():
             raise ValueError("POSTGRES_PASSWORD or DATABASE_URL required")
         return self
+
+    @property
+    def durable_archive(self) -> bool:
+        return self.archive_enabled if self.archive_enabled is not None else self.app_env != "test"
 
     def db_url(self):
         if self.database_url:

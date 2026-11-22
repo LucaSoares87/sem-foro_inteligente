@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from sqlalchemy import create_engine, text
 from src.config import Settings
 from src.main import create_app
+from src.db import SCHEMA_REVISION
 
 @pytest.fixture
 def settings(tmp_path):
@@ -22,7 +23,7 @@ def test_readiness_requires_migration(settings):
         assert response.json()["inference_engine"] == "not_loaded"
         with app.state.engine.begin() as connection:
             connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32))"))
-            connection.execute(text("INSERT INTO alembic_version VALUES ('0001_foundation')"))
+            connection.execute(text("INSERT INTO alembic_version VALUES (:revision)"), {"revision": SCHEMA_REVISION})
         assert client.get("/api/v1/health").status_code == 200
         assert client.get("/health").json()["stream_manager"] == "not_implemented"
 
