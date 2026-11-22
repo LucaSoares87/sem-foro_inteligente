@@ -80,4 +80,4 @@ def compare(scenario):
     return Comparison(scenario=scenario,scenario_sha256=fingerprint(payload),result_sha256=digest,
         fixed=fixed,adaptive=adaptive,preferred_in_simulation=preferred,reason=reason,
         queue_area_reduction_pct=(100*(fixed.queue_area-adaptive.queue_area)/fixed.queue_area
-                                  if fixed.queue_area else None)
+                                  if fixed.queue_area else None))
