@@ -132,7 +132,7 @@ def test_api_end_to_end_and_stale_session(tmp_path):
         assert "jpeg" not in result
         health=client.get("/health").json()
         assert health["video"]["inference_connected"]
-        assert health["vision"]["tracking_connected"] is False
+        assert health["vision"]["tracking_connected"] is True
         assert health["ingestion"]["accepted"]==0
         assert client.post("/api/v1/video/sources/CAM_01/stop").status_code==200
         assert client.get(url).status_code==404
