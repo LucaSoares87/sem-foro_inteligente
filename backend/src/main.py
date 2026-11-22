@@ -9,6 +9,8 @@ from src.config import Settings
 from src.db import make_engine, readiness
 from src.ingestion.engine import IngestionEngine
 from src.ingestion.routes import router as ingestion_router
+from src.pipeline.orchestrator import PipelineOrchestrator
+from src.pipeline.routes import router as pipeline_router
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +20,8 @@ def create_app(settings=None):
         app.state.settings = settings or Settings()
         app.state.engine = make_engine(app.state.settings)
         app.state.ws_count = 0
-        app.state.ingestion = IngestionEngine()
+        app.state.pipeline = PipelineOrchestrator()
+        app.state.ingestion = IngestionEngine(processor=app.state.pipeline.process)
         try:
             app.state.ingestion.start()
             yield
@@ -31,6 +34,7 @@ def create_app(settings=None):
     app = FastAPI(title="Semáforos Inteligentes", version="0.1.0", lifespan=lifespan)
 
     app.include_router(ingestion_router)
+    app.include_router(pipeline_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -52,6 +56,7 @@ def create_app(settings=None):
             "websocket": "available", "websocket_connections": request.app.state.ws_count,
             "stream_manager": "not_implemented", "inference_engine": "not_loaded",
             "ingestion": request.app.state.ingestion.status(),
+            "pipeline": request.app.state.pipeline.status(),
             "operation_mode": request.app.state.settings.operation_mode,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }, status_code=200 if ready else 503)
