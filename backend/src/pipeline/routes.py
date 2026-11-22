@@ -1,6 +1,7 @@
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, Request
 from src.pipeline.contracts import PipelineReport
+from src.archive.service import ArchiveUnavailable
 
 router = APIRouter(prefix="/api/v1/pipeline", tags=["pipeline"])
 
@@ -12,7 +13,13 @@ async def status(request: Request):
 async def report(event_id: UUID, request: Request):
     value = request.app.state.pipeline.get(event_id)
     if value is None:
-        raise HTTPException(404, "report_not_found")
+        try:
+            archived = await request.app.state.archive.lookup(event_id)
+        except ArchiveUnavailable:
+            raise HTTPException(503, "archive_unavailable") from None
+        if archived is None:
+            raise HTTPException(404, "report_not_found")
+        value = archived.report
     return value
 
 @router.get("/events")
