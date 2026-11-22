@@ -38,7 +38,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements*.txt
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m pytest -q
+      - run: python -m pytest -q --cov=src.pipeline --cov-report=term-missing --cov-fail-under=90
       - run: alembic upgrade head && alembic check
       - run: alembic downgrade base && alembic upgrade head
       - run: |
