@@ -83,7 +83,11 @@ jobs:
       - run: docker compose exec -T backend python -c 'import cv2; import numpy; print(cv2.__version__)'
       - run: |
           curl --fail --retry 5 http://127.0.0.1:5173/
+          curl --fail http://127.0.0.1:5173/executivo
+          curl --fail 'http://127.0.0.1:5173/operacional?intersection=CR_01'
+          curl --fail http://127.0.0.1:5173/laboratorio
           curl --fail http://127.0.0.1:5173/api/v1/health
+          curl --fail http://127.0.0.1:5173/api/v1/intersections
           python -m pip install websockets==15.0.1
           python - <<'PY'
           import json
