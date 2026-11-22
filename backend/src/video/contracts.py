@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from uuid import UUID, uuid4
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -74,3 +75,4 @@ class VideoFrame:
     received_at: datetime
     decode_to_receive_ms: float
     jpeg: bytes
+    session_id: UUID = field(default_factory=uuid4)

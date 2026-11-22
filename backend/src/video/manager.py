@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import sys
 from time import monotonic, monotonic_ns
+from uuid import uuid4
 
 from src.video.contracts import MAX_ACTIVE, MAX_HEIGHT, MAX_JPEG, MAX_WIDTH, SourceSpec, VideoFrame
 from src.video.protocol import HEADER
@@ -46,6 +47,7 @@ class VideoSession:
     def __init__(self,spec: SourceSpec,root: Path,spawn=spawn_decoder):
         self.spec,self.root,self.spawn = spec,root,spawn
         self.task = None
+        self.session_id = uuid4()
         self.stopping = False
         self.stop_lock = asyncio.Lock()
         self.state = "idle"
@@ -65,6 +67,7 @@ class VideoSession:
             raise SourceBusy
         if self.active():
             return
+        self.session_id = uuid4()
         self.latest = None
         self.frames = self.overwritten = self.reconnects = 0
         self.arrivals.clear()
@@ -94,6 +97,7 @@ class VideoSession:
             config = self.spec.decoder_config(self.root)
         except (ValueError,OSError):
             raise CaptureError("invalid_source") from None
+        self.session_id = uuid4()
         process = await self.spawn(config)
         sequence = 0
         try:
@@ -129,7 +133,7 @@ class VideoSession:
                 if self.latest is not None:
                     self.overwritten += 1
                 self.latest = VideoFrame(self.spec.source_id,self.spec.intersection_code,
-                    self.frames,width,height,now,self.last_delay_ms,jpeg)
+                    self.frames,width,height,now,self.last_delay_ms,jpeg,self.session_id)
                 self.state,self.error = "running",None
         finally:
             await close_decoder(process)

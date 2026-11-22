@@ -5,7 +5,9 @@ router = APIRouter(prefix="/api/v1/video",tags=["video"])
 
 @router.get("/sources")
 async def sources(request: Request):
-    return request.app.state.video.status()
+    result = request.app.state.video.status()
+    result['inference_connected'] = request.app.state.vision.state == 'ready'
+    return result
 
 @router.post("/sources/{source_id}/start",status_code=202)
 async def start(source_id: str,request: Request):

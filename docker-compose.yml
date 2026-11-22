@@ -34,6 +34,8 @@ services:
       <<: *backend-env
       VIDEO_SOURCES_JSON: ${VIDEO_SOURCES_JSON:-[]}
       VIDEO_ROOT: /media/video
+      VISION_MODEL_JSON: ${VISION_MODEL_JSON:-}
+      VISION_MODEL_ROOT: /media/models
     depends_on:
       migrate:
         condition: service_completed_successfully
