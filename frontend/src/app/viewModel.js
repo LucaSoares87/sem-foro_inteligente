@@ -35,8 +35,6 @@ export function executiveMetrics(data) {
 
 export function intersectionRows(data) {
   const sources = arrays(data?.video?.sources)
-  const analytics = new Map(arrays(data?.analytics?.sources).map(item => [item.intersection_code, item]))
-  const tracking = new Map(arrays(data?.tracking?.sources).map(item => [item.intersection_code, item]))
   const grouped = new Map()
   for (const source of sources) {
     const row = grouped.get(source.intersection_code) || {
@@ -48,11 +46,19 @@ export function intersectionRows(data) {
     if (['error', 'reconnecting'].includes(source.state)) row.errorSources += 1
     grouped.set(source.intersection_code, row)
   }
-  for (const [code, row] of grouped) {
-    const tracked = tracking.get(code)
-    const measured = analytics.get(code)
-    if (tracked && Number.isFinite(tracked.confirmed_visible)) row.confirmedVisible = tracked.confirmed_visible
-    if (measured?.quality) row.analyticsQuality = measured.quality
+  for (const tracked of arrays(data?.tracking?.sources)) {
+    const row = grouped.get(tracked.intersection_code)
+    if (row && Number.isFinite(tracked.confirmed_visible)) {
+      row.confirmedVisible = (row.confirmedVisible ?? 0) + tracked.confirmed_visible
+    }
+  }
+  const qualityRank = { experimental: 0, initializing: 1, limited_sampling: 2 }
+  for (const measured of arrays(data?.analytics?.sources)) {
+    const row = grouped.get(measured.intersection_code)
+    if (!row || !measured.quality) continue
+    if (row.analyticsQuality == null || (qualityRank[measured.quality] ?? 3) > (qualityRank[row.analyticsQuality] ?? 3)) {
+      row.analyticsQuality = measured.quality
+    }
   }
   return [...grouped.values()].sort((a, b) => a.code.localeCompare(b.code))
 }

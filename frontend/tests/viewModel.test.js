@@ -59,3 +59,25 @@ test('alerts expose degradation and advisory abstention without inventing incide
   assert.ok(alerts.length >= 7)
   assert.deepEqual(collectAlerts({status:'ready',video:{sources:[]}},'current','connected'), [])
 })
+
+test('intersection aggregation sums multiple feeds and keeps the most conservative quality', () => {
+  const rows = intersectionRows({
+    video:{sources:[
+      {source_id:'A',intersection_code:'CR_01',state:'running'},
+      {source_id:'B',intersection_code:'CR_01',state:'running'}
+    ]},
+    tracking:{sources:[
+      {source_id:'A',intersection_code:'CR_01',confirmed_visible:2},
+      {source_id:'B',intersection_code:'CR_01',confirmed_visible:3}
+    ]},
+    analytics:{sources:[
+      {source_id:'A',intersection_code:'CR_01',quality:'experimental'},
+      {source_id:'B',intersection_code:'CR_01',quality:'limited_sampling'}
+    ]}
+  })
+  assert.equal(rows.length,1)
+  assert.equal(rows[0].sources,2)
+  assert.equal(rows[0].liveSources,2)
+  assert.equal(rows[0].confirmedVisible,5)
+  assert.equal(rows[0].analyticsQuality,'limited_sampling')
+})
