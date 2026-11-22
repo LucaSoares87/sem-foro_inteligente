@@ -17,6 +17,9 @@ from src.archive.routes import router as archive_router
 from src.video.contracts import load_sources
 from src.video.manager import VideoManager
 from src.video.routes import router as video_router
+from src.vision.contracts import ModelSpec
+from src.vision.service import VisionService
+from src.vision.routes import router as vision_router
 
 log = logging.getLogger(__name__)
 
@@ -25,6 +28,15 @@ def create_app(settings=None):
     async def lifespan(app):
         app.state.settings = settings or Settings()
         app.state.video = VideoManager(load_sources(app.state.settings.video_sources_json.get_secret_value()), app.state.settings.video_root)
+        model_json = app.state.settings.vision_model_json
+        try:
+            spec = ModelSpec.model_validate_json(model_json.get_secret_value()) if model_json and model_json.get_secret_value() else None
+            invalid_model = False
+        except ValueError:
+            spec, invalid_model = None, True
+        app.state.vision = VisionService(app.state.video,spec,app.state.settings.vision_model_root)
+        if invalid_model:
+            app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
         app.state.ws_count = 0
         app.state.pipeline = PipelineOrchestrator()
@@ -34,11 +46,15 @@ def create_app(settings=None):
         app.state.ingestion = IngestionEngine(processor=process, timeout=8.0 if app.state.archive.enabled else 1.0)
         try:
             app.state.ingestion.start()
+            app.state.vision.start()
             yield
         finally:
             try:
                 try:
-                    await app.state.video.shutdown()
+                    try:
+                        await app.state.vision.shutdown()
+                    finally:
+                        await app.state.video.shutdown()
                 finally:
                     await app.state.ingestion.stop()
             finally:
@@ -50,6 +66,7 @@ def create_app(settings=None):
     app.include_router(pipeline_router)
     app.include_router(archive_router)
     app.include_router(video_router)
+    app.include_router(vision_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -65,12 +82,15 @@ def create_app(settings=None):
     async def health(request: Request):
         database, schema = await run_in_threadpool(readiness, request.app.state.engine)
         ready = database == "online" and schema == "current"
+        vision = request.app.state.vision.status()
+        video = request.app.state.video.status()
+        video["inference_connected"] = vision["state"] == "ready"
         return JSONResponse({
             "status": "ready" if ready else "degraded",
             "backend": "online", "database": database, "schema": schema,
             "websocket": "available", "websocket_connections": request.app.state.ws_count,
-            "stream_manager": request.app.state.video.status()["state"], "inference_engine": "not_loaded",
-            "video": request.app.state.video.status(),
+            "stream_manager": video["state"], "inference_engine": vision["state"],
+            "video": video, "vision": vision,
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),

@@ -1,0 +1,4 @@
+services:
+  backend:
+    volumes:
+      - ${VISION_HOST_DIR:?Set VISION_HOST_DIR to an authorized model directory}:/media/models:ro

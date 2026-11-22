@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     archive_enabled: bool | None = None
     video_sources_json: SecretStr = SecretStr('[]')
     video_root: str = './video'
+    vision_model_json: SecretStr | None = None
+    vision_model_root: str = './models'
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     @model_validator(mode="after")

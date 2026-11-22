@@ -3,7 +3,7 @@ const knownStatuses = {
   outdated: 'Desatualizado', unverified: 'Não verificado',
   available: 'Disponível', not_implemented: 'Não implementado',
   not_loaded: 'Não carregado', ready: 'Pronto', degraded: 'Degradado',
-  not_configured: 'Não configurado', idle: 'Inativo', starting: 'Iniciando', running: 'Recebendo vídeo',
+  not_configured: 'Não configurado', idle: 'Inativo', starting: 'Iniciando', loading: 'Carregando modelo', running: 'Recebendo vídeo',
   reconnecting: 'Reconectando', ended: 'Finalizado', stopped: 'Parado', error: 'Falha'
 }
 
