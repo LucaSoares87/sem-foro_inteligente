@@ -16,7 +16,7 @@ export default function App() {
   return <main className="mx-auto max-w-6xl space-y-8 px-5 py-10">
     <header className="flex flex-wrap items-start justify-between gap-5 border-b border-slate-700 pb-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-widest text-sky-300">Fundação técnica / SI-01</p>
+        <p className="text-sm font-medium uppercase tracking-widest text-sky-300">Plataforma técnica / SI-03</p>
         <h1 className="mt-2 text-3xl font-semibold">Semáforos Inteligentes</h1>
         <p className="mt-2 text-slate-400">Centro de inteligência semafórica urbana</p>
       </div>
@@ -36,6 +36,20 @@ export default function App() {
         </article>)}
       </div>
       <p className="mt-4 text-xs text-slate-400">{data?.timestamp ? 'Última leitura: ' + new Date(data.timestamp).toLocaleString('pt-BR') : ''}</p>
+    </section>
+    <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+      <h2 className="font-semibold">Fontes de vídeo</h2>
+      <p className="mt-2 text-sm text-slate-400">Captura e métricas do decodificador; nenhuma contagem de veículos inferida.</p>
+      {!data?.video?.sources?.length ? <p className="mt-3 text-sm text-slate-300">Nenhuma fonte disponível na leitura atual.</p> :
+        <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm">
+          <thead className="text-slate-400"><tr>{['Fonte','Cruzamento','Estado','Quadros','FPS medido','Latência local'].map(h=><th key={h} scope="col" className="p-2">{h}</th>)}</tr></thead>
+          <tbody>{data.video.sources.map(s=><tr key={s.source_id} className="border-t border-slate-700">
+            <td className="p-2">{s.source_id}</td><td className="p-2">{s.intersection_code}</td>
+            <td className="p-2">{displayStatus(s.state)}</td><td className="p-2">{s.frames_received}</td>
+            <td className="p-2">{s.measured_fps==null?'—':s.measured_fps.toFixed(1)}</td>
+            <td className="p-2">{s.decode_to_receive_ms==null?'—':s.decode_to_receive_ms.toFixed(1)+' ms'}</td>
+          </tr>)}</tbody>
+        </table></div>}
     </section>
     <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
       <h2 className="font-semibold">Canal de tempo real</h2>

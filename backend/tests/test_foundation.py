@@ -25,7 +25,7 @@ def test_readiness_requires_migration(settings):
             connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32))"))
             connection.execute(text("INSERT INTO alembic_version VALUES (:revision)"), {"revision": SCHEMA_REVISION})
         assert client.get("/api/v1/health").status_code == 200
-        assert client.get("/health").json()["stream_manager"] == "not_implemented"
+        assert client.get("/health").json()["stream_manager"] == "not_configured"
 
 def test_websocket(settings):
     app = create_app(settings)

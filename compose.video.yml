@@ -1,0 +1,4 @@
+services:
+  backend:
+    volumes:
+      - ${VIDEO_HOST_DIR:?Set VIDEO_HOST_DIR to an authorized directory}:/media/video:ro

@@ -39,7 +39,7 @@ def test_pipeline_via_existing_ingestion_api(tmp_path):
         health = client.get("/health").json()
         assert health["pipeline"]["origin"] == "synthetic"
         assert health["ingestion"]["processed"] == 1
-        assert health["stream_manager"] == "not_implemented"
+        assert health["stream_manager"] == "not_configured"
         assert health["inference_engine"] == "not_loaded"
         with client.websocket_connect("/api/v1/ws/realtime") as ws:
             assert ws.receive_json()["type"] == "connection_ack"

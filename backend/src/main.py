@@ -14,6 +14,9 @@ from src.pipeline.routes import router as pipeline_router
 from src.archive.store import ArchiveStore
 from src.archive.service import ArchiveService
 from src.archive.routes import router as archive_router
+from src.video.contracts import load_sources
+from src.video.manager import VideoManager
+from src.video.routes import router as video_router
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +24,7 @@ def create_app(settings=None):
     @asynccontextmanager
     async def lifespan(app):
         app.state.settings = settings or Settings()
+        app.state.video = VideoManager(load_sources(app.state.settings.video_sources_json.get_secret_value()), app.state.settings.video_root)
         app.state.engine = make_engine(app.state.settings)
         app.state.ws_count = 0
         app.state.pipeline = PipelineOrchestrator()
@@ -33,7 +37,10 @@ def create_app(settings=None):
             yield
         finally:
             try:
-                await app.state.ingestion.stop()
+                try:
+                    await app.state.video.shutdown()
+                finally:
+                    await app.state.ingestion.stop()
             finally:
                 await run_in_threadpool(app.state.engine.dispose)
 
@@ -42,6 +49,7 @@ def create_app(settings=None):
     app.include_router(ingestion_router)
     app.include_router(pipeline_router)
     app.include_router(archive_router)
+    app.include_router(video_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -61,7 +69,8 @@ def create_app(settings=None):
             "status": "ready" if ready else "degraded",
             "backend": "online", "database": database, "schema": schema,
             "websocket": "available", "websocket_connections": request.app.state.ws_count,
-            "stream_manager": "not_implemented", "inference_engine": "not_loaded",
+            "stream_manager": request.app.state.video.status()["state"], "inference_engine": "not_loaded",
+            "video": request.app.state.video.status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),
