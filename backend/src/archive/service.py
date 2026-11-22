@@ -47,7 +47,7 @@ class ArchiveService:
                           accepted_at=pending.accepted_at,
                           finished_at=datetime.now(timezone.utc),
                           processing_ms=(monotonic()-start)*1000)
-        await self.execute(self.store.save, ArchivedRun(receipt=receipt,report=report,events=tuple(events)))
+        await self.execute(self.store.save, ArchivedRun(journal_epoch=pipeline.events.epoch,receipt=receipt,report=report,events=tuple(events)))
         return handoff
 
     def status(self, database, schema):

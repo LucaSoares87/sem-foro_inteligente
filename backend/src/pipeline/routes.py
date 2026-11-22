@@ -23,5 +23,5 @@ async def report(event_id: UUID, request: Request):
     return value
 
 @router.get("/events")
-async def events(request: Request, after: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200)):
-    return request.app.state.pipeline.events.read(after, limit)
+async def events(request: Request, after: int = Query(0, ge=0, le=2**63-1), limit: int = Query(100, ge=1, le=200), epoch: UUID | None = None):
+    return request.app.state.pipeline.events.read(after, limit, epoch)

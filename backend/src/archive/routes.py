@@ -35,4 +35,4 @@ async def replay(event_id: UUID, request: Request):
     frames = [{"offset_ms":max(0,(e.timestamp-baseline).total_seconds()*1000),
                "event":e} for e in archived.events]
     return {"mode":"read_only", "origin":"synthetic", "event_id":event_id,
-            "decision":"abstain","frames":frames,"report":archived.report}
+            "decision":"abstain","journal_epoch":archived.journal_epoch,"frames":frames,"report":archived.report}

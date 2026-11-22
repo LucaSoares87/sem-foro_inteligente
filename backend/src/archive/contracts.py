@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict, model_validator
 from src.ingestion.contracts import Receipt
 from src.pipeline.contracts import PipelineEvent, PipelineReport
@@ -6,6 +7,7 @@ from src.pipeline.contracts import PipelineEvent, PipelineReport
 class ArchivedRun(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     schema_version: Literal[1] = 1
+    journal_epoch: UUID
     receipt: Receipt
     report: PipelineReport
     events: tuple[PipelineEvent, ...]
