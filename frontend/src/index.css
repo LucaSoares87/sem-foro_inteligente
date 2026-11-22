@@ -57,3 +57,17 @@ button:focus-visible, a:focus-visible, select:focus-visible {
 }
 
 .skip-link:focus { transform: translateY(0); }
+
+@layer components {
+  .field-label { @apply block text-xs font-medium text-slate-400; }
+  .field-control { @apply mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600; }
+  .geo-map { @apply relative min-h-72 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/50 sm:min-h-96; }
+  .geo-map-badge { @apply absolute bottom-3 right-3 rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500; }
+  .geo-marker { stroke-width: 4; stroke: rgba(15,23,42,.9); }
+  .geo-marker-live { fill: rgb(52 211 153); }
+  .geo-marker-error { fill: rgb(251 113 133); }
+  .geo-marker-idle { fill: rgb(100 116 139); }
+  .geo-location-card { @apply flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/35 p-3 text-left transition hover:border-sky-400/30 hover:bg-slate-900; }
+  .geo-location-card strong { @apply block text-sm text-slate-200; }
+  .geo-location-card small { @apply block text-[11px] leading-5 text-slate-500; }
+}

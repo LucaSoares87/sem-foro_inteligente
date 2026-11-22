@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     vision_model_json: SecretStr | None = None
     vision_model_root: str = './models'
     traffic_geometry_json: SecretStr = SecretStr('[]')
+    intersection_registry_json: SecretStr = SecretStr('[]')
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     @model_validator(mode="after")
