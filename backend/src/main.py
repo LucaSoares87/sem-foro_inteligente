@@ -22,6 +22,9 @@ from src.vision.service import VisionService
 from src.vision.routes import router as vision_router
 from src.tracking.service import TrackingService
 from src.tracking.routes import router as tracking_router
+from src.analytics.contracts import load_geometry
+from src.analytics.service import AnalyticsService
+from src.analytics.routes import router as analytics_router
 
 log = logging.getLogger(__name__)
 
@@ -39,6 +42,14 @@ def create_app(settings=None):
         app.state.vision = VisionService(app.state.video,spec,app.state.settings.vision_model_root)
         app.state.tracking = TrackingService(app.state.vision)
         app.state.vision.tracking = app.state.tracking
+        try:
+            geometry = load_geometry(app.state.settings.traffic_geometry_json.get_secret_value(),
+                {k:s.spec.intersection_code for k,s in app.state.video.sessions.items()})
+            invalid_geometry = False
+        except ValueError:
+            geometry, invalid_geometry = {}, True
+        app.state.analytics = AnalyticsService(app.state.tracking,geometry,invalid_geometry)
+        app.state.tracking.analytics = app.state.analytics
         if invalid_model:
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
@@ -72,6 +83,7 @@ def create_app(settings=None):
     app.include_router(video_router)
     app.include_router(vision_router)
     app.include_router(tracking_router)
+    app.include_router(analytics_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -97,6 +109,7 @@ def create_app(settings=None):
             "stream_manager": video["state"], "inference_engine": vision["state"],
             "video": video, "vision": vision,
             "tracking": request.app.state.tracking.status(),
+            "analytics": request.app.state.analytics.status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),

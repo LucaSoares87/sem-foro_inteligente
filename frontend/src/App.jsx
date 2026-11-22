@@ -16,7 +16,7 @@ export default function App() {
   return <main className="mx-auto max-w-6xl space-y-8 px-5 py-10">
     <header className="flex flex-wrap items-start justify-between gap-5 border-b border-slate-700 pb-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-widest text-sky-300">Plataforma técnica / SI-04B</p>
+        <p className="text-sm font-medium uppercase tracking-widest text-sky-300">Plataforma técnica / SI-05A</p>
         <h1 className="mt-2 text-3xl font-semibold">Semáforos Inteligentes</h1>
         <p className="mt-2 text-slate-400">Centro de inteligência semafórica urbana</p>
       </div>
@@ -69,6 +69,19 @@ export default function App() {
         <h3 className="font-medium">{s.source_id} / {s.intersection_code}</h3>
         <p className="mt-1 text-sm text-slate-300">{s.live ? 'Quadro recente' : 'Último quadro histórico'} · {s.confirmed_visible} confirmados visíveis · {s.tentative_visible} em confirmação</p>
         <p className="mt-1 text-xs text-slate-400">{s.tracking_ms.toFixed(1)} ms de associação · {s.skipped_frames} quadros não analisados entre observações</p>
+      </article>)}
+    </section>
+    <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+      <h2 className="font-semibold">Indicadores experimentais de trânsito</h2>
+      <p className="mt-2 text-sm text-slate-400">Cobertura de caixas na imagem, não ocupação física da pista. Passagens observadas por linha e janela, sem extrapolação.</p>
+      <p className="mt-3 text-sm">{data?.analytics ? displayStatus(data.analytics.state) : 'Sem dados atuais'}</p>
+      {!data?.analytics?.sources?.length && <p className="mt-2 text-sm text-slate-400">Sem medições disponíveis. Verifique fonte, modelo e geometria.</p>}
+      {data?.analytics?.sources?.map(s => <article key={s.source_id} className="mt-3 rounded border border-slate-700 p-3">
+        <h3 className="font-medium">{s.source_id} / {s.intersection_code}</h3>
+        <p className="mt-1 text-xs text-slate-400">{s.live ? 'Quadro recente' : 'Histórico do arquivo'} · {s.purpose==='validation_only'?'Modelo de validação':'Modelo candidato'} · {{initializing:'Inicializando',limited_sampling:'Amostragem limitada',experimental:'Experimental'}[s.quality]} · início {new Date(s.window_started_at).toLocaleString('pt-BR')}</p>
+        <p className="mt-1 text-xs text-slate-400">{s.observed_batches} lotes observados · {s.skipped_frames} quadros não analisados · {s.discontinuities} descontinuidades</p>
+        {s.regions.map(r=><p key={r.region_id} className="mt-2 text-sm">{r.region_id}: {r.confirmed_visible} veículos confirmados visíveis · {r.image_coverage_pct.toFixed(1)}% cobertura visual</p>)}
+        {s.lines.map(l=><p key={l.line_id} className="mt-2 text-sm">{l.line_id}: {l.negative_to_positive} passagens (− → +) · {l.positive_to_negative} (+ → −)</p>)}
       </article>)}
     </section>
     <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
