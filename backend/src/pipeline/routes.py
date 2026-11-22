@@ -12,7 +12,7 @@ async def status(request: Request):
 @router.get("/reports/{event_id}", response_model=PipelineReport)
 async def report(event_id: UUID, request: Request):
     value = request.app.state.pipeline.get(event_id)
-    if value is None:
+    if value is None or request.app.state.archive.enabled:
         try:
             archived = await request.app.state.archive.lookup(event_id)
         except ArchiveUnavailable:

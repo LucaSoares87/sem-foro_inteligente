@@ -45,6 +45,7 @@ class ArchiveStore:
     def save(self, run: ArchivedRun):
         observation = run.report.observation
         payload = run.model_dump(mode="json")
+        ArchivedRun.model_validate(payload)
         with Session(self.engine) as session:
             session.add(PipelineArchive(event_id=str(observation.event_id),
                 intersection_code=observation.intersection_code, origin=observation.origin,

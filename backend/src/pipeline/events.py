@@ -33,6 +33,6 @@ class EventBus:
                 "oldest_available": oldest, "latest": self._sequence}
 
     def status(self):
-        return {"epoch": self.epoch, "capacity": self._events.maxlen, "retained": len(self._events),
+        return {"epoch": str(self.epoch), "capacity": self._events.maxlen, "retained": len(self._events),
                 "published": self._sequence,
                 "evicted": self._sequence - len(self._events)}

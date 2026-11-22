@@ -55,6 +55,7 @@ def test_archive_restart_idempotency_replay_and_epoch(setup):
         assert submit_and_wait(client,two)["state"] == "processed"
         whole = client.get(url).json()
         assert whole["receipt"]["state"] == "processed"
+        assert client.get(f"/api/v1/ingestion/observations/{event_id}").json() == whole["receipt"]
         assert whole["report"]["decision"] == "abstain"
         assert len(whole["events"]) == 7
         epoch = client.get("/api/v1/pipeline/events").json()["epoch"]
@@ -86,7 +87,8 @@ def test_archive_restart_idempotency_replay_and_epoch(setup):
     assert store.save(run) == run
     with pytest.raises(DuplicateConflict):
         changed = run.report.observation.model_copy(update={"vehicle_count":9})
-        store.save(run.model_copy(update={"report":run.report.model_copy(update={"observation":changed})}))
+        store.save(run.model_copy(update={"report":run.report.model_copy(update={"observation":changed}),
+                                          "receipt":run.receipt.model_copy(update={"observation":changed})}))
 
 def test_corruption_and_retention(setup):
     settings,engine = setup
@@ -138,6 +140,7 @@ def test_failed_write_not_processed(setup,monkeypatch):
         receipt = submit_and_wait(client,body)
         assert receipt["state"] == "failed" and receipt["error_code"] == "processor_error"
         assert client.get(f"/api/v1/archive/runs/{body['event_id']}").status_code == 404
+        assert client.get(f"/api/v1/pipeline/reports/{body['event_id']}").status_code == 404
 
 def test_integrity_validation(setup):
     settings,engine = setup

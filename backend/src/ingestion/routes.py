@@ -38,12 +38,15 @@ async def submit(observation: Observation, request: Request, response: Response)
 @router.get("/observations/{event_id}", response_model=Receipt)
 async def get_receipt(event_id: UUID, request: Request):
     receipt = request.app.state.ingestion.get(event_id)
-    if receipt is None:
+    archive = request.app.state.archive
+    if receipt is None or (archive.enabled and receipt.state == "processed"):
         try:
-            archived = await request.app.state.archive.lookup(event_id)
+            archived = await archive.lookup(event_id)
         except ArchiveUnavailable:
             raise HTTPException(503, "archive_unavailable") from None
         if archived is None:
+            if receipt is not None:
+                raise HTTPException(503, "archive_record_missing")
             raise HTTPException(404, "receipt_not_found")
         receipt = archived.receipt
     return receipt
