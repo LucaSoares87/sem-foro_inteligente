@@ -9,6 +9,7 @@ class TrackingService:
         self.errors={}
         self.processed=0
         self.failed=0
+        self.analytics=None
 
     def consume(self,batch):
         source=batch.source_id
@@ -28,11 +29,16 @@ class TrackingService:
             if source in self.vision.video.sessions:
                 self.errors[source]="tracking_failed"
             self.failed+=1
+            return
+        if self.analytics is not None:
+            self.analytics.consume(self.results[source])
 
     def clear(self):
         self.trackers.clear()
         self.results.clear()
         self.errors.clear()
+        if self.analytics is not None:
+            self.analytics.clear()
 
     def latest(self,source_id):
         current=self.vision.valid_result(source_id)

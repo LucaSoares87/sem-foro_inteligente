@@ -36,6 +36,7 @@ services:
       VIDEO_ROOT: /media/video
       VISION_MODEL_JSON: ${VISION_MODEL_JSON:-}
       VISION_MODEL_ROOT: /media/models
+      TRAFFIC_GEOMETRY_JSON: ${TRAFFIC_GEOMETRY_JSON:-[]}
     depends_on:
       migrate:
         condition: service_completed_successfully
