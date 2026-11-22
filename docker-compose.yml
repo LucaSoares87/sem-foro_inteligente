@@ -37,6 +37,7 @@ services:
       VISION_MODEL_JSON: ${VISION_MODEL_JSON:-}
       VISION_MODEL_ROOT: /media/models
       TRAFFIC_GEOMETRY_JSON: ${TRAFFIC_GEOMETRY_JSON:-[]}
+      INTERSECTION_REGISTRY_JSON: ${INTERSECTION_REGISTRY_JSON:-[]}
     depends_on:
       migrate:
         condition: service_completed_successfully
