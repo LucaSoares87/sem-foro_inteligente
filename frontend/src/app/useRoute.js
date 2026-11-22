@@ -1,26 +1,34 @@
 import { useCallback, useEffect, useState } from 'react'
-import { isKnownRoute, routeById, routeFromPath } from './navigation.js'
+import { isKnownRoute, routeFromPath, workspaceUrl } from './navigation.js'
+
+function readLocation() {
+  return {
+    route: routeFromPath(window.location.pathname),
+    params: Object.fromEntries(new URLSearchParams(window.location.search))
+  }
+}
 
 export default function useRoute() {
-  const [route, setRoute] = useState(() => routeFromPath(window.location.pathname))
+  const [location, setLocation] = useState(readLocation)
 
   useEffect(() => {
     if (!isKnownRoute(window.location.pathname)) {
       const canonical = routeFromPath(window.location.pathname)
       window.history.replaceState({}, '', canonical.path)
-      setRoute(canonical)
+      setLocation(readLocation())
     }
-    const onPopState = () => setRoute(routeFromPath(window.location.pathname))
+    const onPopState = () => setLocation(readLocation())
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  const navigate = useCallback(id => {
-    const next = routeById(id)
-    if (window.location.pathname !== next.path) window.history.pushState({}, '', next.path)
-    setRoute(next)
+  const navigate = useCallback((id, params = {}) => {
+    const url = workspaceUrl(id, params)
+    const current = window.location.pathname + window.location.search
+    if (current !== url) window.history.pushState({}, '', url)
+    setLocation(readLocation())
     window.scrollTo({ top: 0, behavior: 'auto' })
   }, [])
 
-  return { route, navigate }
+  return { ...location, navigate }
 }

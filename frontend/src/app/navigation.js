@@ -29,3 +29,13 @@ export function isKnownRoute(pathname) {
 export function shouldHandleNavigation(eventLike = {}) {
   return (eventLike.button ?? 0) === 0 && !eventLike.metaKey && !eventLike.ctrlKey && !eventLike.shiftKey && !eventLike.altKey
 }
+
+export function workspaceUrl(id, params = {}) {
+  const route = routeById(id)
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && String(value) !== '') query.set(key, String(value))
+  }
+  const suffix = query.toString()
+  return route.path + (suffix ? '?' + suffix : '')
+}
