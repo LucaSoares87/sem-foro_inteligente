@@ -70,7 +70,7 @@ class VisionService:
             return None
         if session.state not in {"running","ended"}:
             return None
-        if session.state=="running" and (datetime.now(timezone.utc)-batch.inferred_at).total_seconds()>5:
+        if session.state=="running" and (datetime.now(timezone.utc)-batch.received_at).total_seconds()>5:
             return None
         return batch
 

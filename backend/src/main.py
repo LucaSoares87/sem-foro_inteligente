@@ -29,8 +29,14 @@ def create_app(settings=None):
         app.state.settings = settings or Settings()
         app.state.video = VideoManager(load_sources(app.state.settings.video_sources_json.get_secret_value()), app.state.settings.video_root)
         model_json = app.state.settings.vision_model_json
-        spec = ModelSpec.model_validate_json(model_json.get_secret_value()) if model_json and model_json.get_secret_value() else None
+        try:
+            spec = ModelSpec.model_validate_json(model_json.get_secret_value()) if model_json and model_json.get_secret_value() else None
+            invalid_model = False
+        except ValueError:
+            spec, invalid_model = None, True
         app.state.vision = VisionService(app.state.video,spec,app.state.settings.vision_model_root)
+        if invalid_model:
+            app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
         app.state.ws_count = 0
         app.state.pipeline = PipelineOrchestrator()
