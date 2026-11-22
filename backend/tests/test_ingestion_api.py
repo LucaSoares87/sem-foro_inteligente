@@ -16,7 +16,7 @@ def test_ingestion_api_and_foundation_compatibility(tmp_path):
         health = client.get("/api/v1/health")
         assert health.status_code == 503
         assert health.json()["ingestion"]["origin"] == "synthetic"
-        assert health.json()["stream_manager"] == "not_implemented"
+        assert health.json()["stream_manager"] == "not_configured"
         assert health.json()["inference_engine"] == "not_loaded"
         response = client.post("/api/v1/ingestion/observations", json=payload)
         assert response.status_code == 202

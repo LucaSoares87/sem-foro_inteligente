@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     postgres_password: SecretStr = SecretStr("")
     database_url: SecretStr | None = None
     archive_enabled: bool | None = None
+    video_sources_json: SecretStr = SecretStr('[]')
+    video_root: str = './video'
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     @model_validator(mode="after")

@@ -2,7 +2,9 @@ const knownStatuses = {
   online: 'Online', offline: 'Indisponível', current: 'Atualizado',
   outdated: 'Desatualizado', unverified: 'Não verificado',
   available: 'Disponível', not_implemented: 'Não implementado',
-  not_loaded: 'Não carregado', ready: 'Pronto', degraded: 'Degradado'
+  not_loaded: 'Não carregado', ready: 'Pronto', degraded: 'Degradado',
+  not_configured: 'Não configurado', idle: 'Inativo', starting: 'Iniciando', running: 'Recebendo vídeo',
+  reconnecting: 'Reconectando', ended: 'Finalizado', stopped: 'Parado', error: 'Falha'
 }
 
 export function displayStatus(value) {
