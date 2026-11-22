@@ -133,9 +133,23 @@ def test_api_end_to_end_and_stale_session(tmp_path):
         health=client.get("/health").json()
         assert health["video"]["inference_connected"]
         assert health["vision"]["tracking_connected"] is True
+        tracking_url="/api/v1/tracking/sources/CAM_01/latest"
+        end=monotonic()+5
+        while monotonic()<end:
+            tracked=client.get(tracking_url)
+            if tracked.status_code==200 and any(t["state"]=="confirmed" for t in tracked.json()["tracks"]):
+                break
+            sleep(.05)
+        assert tracked.status_code==200,tracked.text
+        assert tracked.json()["purpose"]=="validation_only"
+        assert tracked.json()["algorithm"]=="bytetrack_inspired_v1"
+        assert any(t["state"]=="confirmed" for t in tracked.json()["tracks"])
+        assert client.get("/api/v1/tracking/sources/MISSING/latest").status_code==404
+        assert client.get("/api/v1/tracking/status").json()["passage_counting"] is False
         assert health["ingestion"]["accepted"]==0
         assert client.post("/api/v1/video/sources/CAM_01/stop").status_code==200
         assert client.get(url).status_code==404
+        assert client.get(tracking_url).status_code==404
         assert client.get("/health/live").status_code==200
 
 @pytest.mark.parametrize("bad",["not json","{}"])

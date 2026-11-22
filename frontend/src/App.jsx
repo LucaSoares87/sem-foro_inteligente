@@ -16,7 +16,7 @@ export default function App() {
   return <main className="mx-auto max-w-6xl space-y-8 px-5 py-10">
     <header className="flex flex-wrap items-start justify-between gap-5 border-b border-slate-700 pb-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-widest text-sky-300">Plataforma técnica / SI-04A</p>
+        <p className="text-sm font-medium uppercase tracking-widest text-sky-300">Plataforma técnica / SI-04B</p>
         <h1 className="mt-2 text-3xl font-semibold">Semáforos Inteligentes</h1>
         <p className="mt-2 text-slate-400">Centro de inteligência semafórica urbana</p>
       </div>
@@ -59,6 +59,16 @@ export default function App() {
         <h3 className="font-medium">{s.source_id} / {s.intersection_code}</h3>
         <p className="mt-1 text-sm text-slate-300">{s.live ? 'Quadro recente' : 'Último quadro analisado de arquivo encerrado'} · {s.detections_per_frame} detecções · {s.inference_ms.toFixed(1)} ms</p>
         <p className="mt-1 text-xs text-slate-400">{Object.entries(s.classes).map(([k,v]) => k + ': ' + v).join(' · ') || 'Nenhuma detecção no quadro'}</p>
+      </article>)}
+    </section>
+    <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+      <h2 className="font-semibold">Rastreamento de veículos</h2>
+      <p className="mt-2 text-sm text-slate-400">Associação temporal experimental, por câmera. Veículos visíveis não equivalem a passagens ou fluxo acumulado.</p>
+      <p className="mt-3 text-sm">{data?.tracking ? displayStatus(data.tracking.state) : 'Sem dados atuais'}</p>
+      {data?.tracking?.sources?.map(s => <article key={s.source_id} className="mt-3 rounded border border-slate-700 p-3">
+        <h3 className="font-medium">{s.source_id} / {s.intersection_code}</h3>
+        <p className="mt-1 text-sm text-slate-300">{s.live ? 'Quadro recente' : 'Último quadro histórico'} · {s.confirmed_visible} confirmados visíveis · {s.tentative_visible} em confirmação</p>
+        <p className="mt-1 text-xs text-slate-400">{s.tracking_ms.toFixed(1)} ms de associação · {s.skipped_frames} quadros não analisados entre observações</p>
       </article>)}
     </section>
     <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
