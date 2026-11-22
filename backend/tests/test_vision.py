@@ -105,7 +105,10 @@ def test_api_end_to_end_and_stale_session(tmp_path):
                          "locator":"clip.avi","target_fps":15}])
     settings=Settings(app_env="test",database_url=f"sqlite:///{tmp_path/'test.db'}",
         vision_model_root=str(tmp_path),vision_model_json=spec.model_dump_json(),
-        video_root=str(tmp_path),video_sources_json=registry)
+        video_root=str(tmp_path),video_sources_json=registry,
+        traffic_geometry_json=json.dumps([{'source_id':'CAM_01','intersection_code':'CR_01',
+            'regions':[{'region_id':'ROI','xyxy':[0,0,1,1]}],
+            'lines':[{'line_id':'L1','start':[0.5,0],'end':[0.5,1]}]}]))
     with TestClient(create_app(settings)) as client:
         end=monotonic()+15
         while monotonic()<end:
@@ -146,10 +149,22 @@ def test_api_end_to_end_and_stale_session(tmp_path):
         assert any(t["state"]=="confirmed" for t in tracked.json()["tracks"])
         assert client.get("/api/v1/tracking/sources/MISSING/latest").status_code==404
         assert client.get("/api/v1/tracking/status").json()["passage_counting"] is False
+        analytics_url="/api/v1/analytics/sources/CAM_01/latest"
+        analytics=client.get(analytics_url)
+        assert analytics.status_code==200,analytics.text
+        snapshot=analytics.json()
+        assert snapshot["purpose"]=="validation_only"
+        assert snapshot["operationally_validated"] is False
+        assert snapshot["regions"][0]["confirmed_visible"]==1
+        assert snapshot["regions"][0]["image_coverage_pct"]>0
+        assert snapshot["lines"][0]["negative_to_positive"]==0
+        assert snapshot["lines"][0]["positive_to_negative"]==0
+        assert client.get("/api/v1/analytics/status").json()["state"]=="available"
         assert health["ingestion"]["accepted"]==0
         assert client.post("/api/v1/video/sources/CAM_01/stop").status_code==200
         assert client.get(url).status_code==404
         assert client.get(tracking_url).status_code==404
+        assert client.get(analytics_url).status_code==404
         assert client.get("/health/live").status_code==200
 
 @pytest.mark.parametrize("bad",["not json","{}"])
