@@ -1,9 +1,9 @@
 from datetime import datetime
-from sqlalchemy import DateTime, String, JSON, ForeignKey, CheckConstraint, Float, text, func
+from sqlalchemy import BigInteger, UniqueConstraint, DateTime, String, JSON, ForeignKey, CheckConstraint, Float, text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import create_engine
 
-SCHEMA_REVISION = "0002_pipeline_archive"
+SCHEMA_REVISION = "0003_traffic_history"
 
 class Base(DeclarativeBase):
     pass
@@ -56,3 +56,13 @@ class PipelineArchive(Base):
     payload: Mapped[dict] = mapped_column(JSON)
     digest: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+class TrafficWindowRecord(Base):
+    __tablename__ = "traffic_windows"
+    __table_args__ = (UniqueConstraint("source_id","analytics_epoch","start_sequence",name="uq_traffic_window"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(80),index=True)
+    analytics_epoch: Mapped[str] = mapped_column(String(36))
+    start_sequence: Mapped[int] = mapped_column(BigInteger)
+    payload: Mapped[dict] = mapped_column(JSON)
+    digest: Mapped[str] = mapped_column(String(64))

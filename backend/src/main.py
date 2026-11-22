@@ -25,6 +25,9 @@ from src.tracking.routes import router as tracking_router
 from src.analytics.contracts import load_geometry
 from src.analytics.service import AnalyticsService
 from src.analytics.routes import router as analytics_router
+from src.predictive.store import HistoryStore
+from src.predictive.service import HistoryService
+from src.predictive.routes import router as predictive_router
 
 log = logging.getLogger(__name__)
 
@@ -53,6 +56,8 @@ def create_app(settings=None):
         if invalid_model:
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
+        app.state.history = HistoryService(HistoryStore(app.state.engine),app.state.settings.durable_archive)
+        app.state.analytics.history = app.state.history
         app.state.ws_count = 0
         app.state.pipeline = PipelineOrchestrator()
         app.state.archive = ArchiveService(ArchiveStore(app.state.engine), app.state.settings.durable_archive)
@@ -61,6 +66,7 @@ def create_app(settings=None):
         app.state.ingestion = IngestionEngine(processor=process, timeout=8.0 if app.state.archive.enabled else 1.0)
         try:
             app.state.ingestion.start()
+            app.state.history.start()
             app.state.vision.start()
             yield
         finally:
@@ -73,7 +79,10 @@ def create_app(settings=None):
                 finally:
                     await app.state.ingestion.stop()
             finally:
-                await run_in_threadpool(app.state.engine.dispose)
+                try:
+                    await app.state.history.stop()
+                finally:
+                    await run_in_threadpool(app.state.engine.dispose)
 
     app = FastAPI(title="Semáforos Inteligentes", version="0.1.0", lifespan=lifespan)
 
@@ -84,6 +93,7 @@ def create_app(settings=None):
     app.include_router(vision_router)
     app.include_router(tracking_router)
     app.include_router(analytics_router)
+    app.include_router(predictive_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -110,6 +120,7 @@ def create_app(settings=None):
             "video": video, "vision": vision,
             "tracking": request.app.state.tracking.status(),
             "analytics": request.app.state.analytics.status(),
+            "predictive": request.app.state.history.status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),
