@@ -30,6 +30,10 @@ from src.predictive.service import HistoryService
 from src.predictive.routes import router as predictive_router
 from src.decision.routes import router as decision_router
 from src.decision.service import status as decision_status
+from src.geography.contracts import load_registry
+from src.geography.routes import router as geography_router
+from src.geography.service import GeographyService
+from src.geography.store import GeographyStore
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +62,19 @@ def create_app(settings=None):
         if invalid_model:
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
+        app.state.geography = GeographyService(GeographyStore(app.state.engine))
+        raw_registry = app.state.settings.intersection_registry_json.get_secret_value()
+        try:
+            registry = load_registry(raw_registry)
+            app.state.geography.configured = len(registry)
+            if registry:
+                database_state, schema_state = await run_in_threadpool(readiness, app.state.engine)
+                if database_state == "online" and schema_state == "current":
+                    await run_in_threadpool(app.state.geography.sync, registry)
+                else:
+                    app.state.geography.error = "schema_not_ready"
+        except ValueError:
+            app.state.geography.error = "registry_config_invalid"
         app.state.history = HistoryService(HistoryStore(app.state.engine),app.state.settings.durable_archive)
         app.state.analytics.history = app.state.history
         app.state.ws_count = 0
@@ -97,6 +114,7 @@ def create_app(settings=None):
     app.include_router(analytics_router)
     app.include_router(predictive_router)
     app.include_router(decision_router)
+    app.include_router(geography_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -111,7 +129,8 @@ def create_app(settings=None):
     @app.get("/api/v1/health")
     async def health(request: Request):
         database, schema = await run_in_threadpool(readiness, request.app.state.engine)
-        ready = database == "online" and schema == "current"
+        geography = request.app.state.geography.status()
+        ready = database == "online" and schema == "current" and geography["state"] != "error"
         vision = request.app.state.vision.status()
         video = request.app.state.video.status()
         video["inference_connected"] = vision["state"] == "ready"
@@ -125,6 +144,7 @@ def create_app(settings=None):
             "analytics": request.app.state.analytics.status(),
             "predictive": request.app.state.history.status(),
             "decision": decision_status(),
+            "geography": geography,
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),

@@ -3,16 +3,26 @@ from sqlalchemy import BigInteger, UniqueConstraint, DateTime, String, JSON, For
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import create_engine
 
-SCHEMA_REVISION = "0003_traffic_history"
+SCHEMA_REVISION = "0004_intersection_geography"
 
 class Base(DeclarativeBase):
     pass
 
 class Intersection(Base):
     __tablename__ = "intersections"
+    __table_args__ = (
+        CheckConstraint("(latitude IS NULL AND longitude IS NULL) OR (latitude IS NOT NULL AND longitude IS NOT NULL)", name="ck_intersection_coordinate_pair"),
+        CheckConstraint("latitude IS NULL OR (latitude >= -90 AND latitude <= 90)", name="ck_intersection_latitude"),
+        CheckConstraint("longitude IS NULL OR (longitude >= -180 AND longitude <= 180)", name="ck_intersection_longitude"),
+    )
     code: Mapped[str] = mapped_column(String(80), primary_key=True)
     name: Mapped[str] = mapped_column(String(160))
+    district: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    enabled: Mapped[bool] = mapped_column(default=True)
     configuration: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 class AuditEvent(Base):
     __tablename__ = "audit_events"
