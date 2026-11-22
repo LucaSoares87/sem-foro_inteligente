@@ -10,6 +10,7 @@ class AnalyticsService:
         self.errors={}
         self.processed=0
         self.failed=0
+        self.history=None
 
     def consume(self,batch):
         source=batch.source_id
@@ -27,11 +28,16 @@ class AnalyticsService:
             self.results.pop(source,None)
             self.errors[source]="analytics_failed"
             self.failed+=1
+            return
+        if self.history is not None:
+            self.history.consume(self.results[source])
 
     def clear(self):
         self.engines.clear()
         self.results.clear()
         self.errors.clear()
+        if self.history is not None:
+            self.history.clear()
 
     def latest(self,source):
         tracked=self.tracking.latest(source)
