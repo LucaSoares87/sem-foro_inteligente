@@ -28,6 +28,8 @@ from src.analytics.routes import router as analytics_router
 from src.predictive.store import HistoryStore
 from src.predictive.service import HistoryService
 from src.predictive.routes import router as predictive_router
+from src.decision.routes import router as decision_router
+from src.decision.service import status as decision_status
 
 log = logging.getLogger(__name__)
 
@@ -94,6 +96,7 @@ def create_app(settings=None):
     app.include_router(tracking_router)
     app.include_router(analytics_router)
     app.include_router(predictive_router)
+    app.include_router(decision_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -121,6 +124,7 @@ def create_app(settings=None):
             "tracking": request.app.state.tracking.status(),
             "analytics": request.app.state.analytics.status(),
             "predictive": request.app.state.history.status(),
+            "decision": decision_status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),
