@@ -2,6 +2,7 @@ import React from 'react'
 import useHealth from './useHealth.js'
 import useRealtime from './useRealtime.js'
 import { displayStatus } from './health.js'
+import ForecastPanel from './ForecastPanel.jsx'
 
 const components = [
   ['Backend', 'backend'], ['Banco de dados', 'database'], ['Schema', 'schema'],
@@ -89,6 +90,7 @@ export default function App() {
       <p className="mt-2 text-sm text-slate-400">Janelas observadas de aproximadamente um minuto. Previsão experimental não equivale à demanda total nem a uma recomendação semafórica.</p>
       {data?.predictive ? <p className="mt-3 text-sm">{data.predictive.state === 'disabled' ? 'Histórico desativado' : displayStatus(data.predictive.state)} · {data.predictive.saved} janelas persistidas nesta execução · {data.predictive.queued} pendentes · {data.predictive.failed} falhas · {data.predictive.dropped} descartes</p> : <p className="mt-3 text-sm">Sem dados atuais</p>}
       <p className="mt-2 text-xs text-slate-400">Fila física, tempo de espera e congestionamento físico: indisponíveis sem calibração.</p>
+      {data?.predictive?.state !== 'disabled' && data?.analytics?.sources?.filter(s=>s.live && s.lines.length).map(s=><ForecastPanel key={s.source_id+':'+s.analytics_epoch} source={s}/>)}
     </section>
     <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
       <h2 className="font-semibold">Canal de tempo real</h2>

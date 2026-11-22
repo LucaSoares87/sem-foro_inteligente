@@ -163,6 +163,9 @@ def test_history_api_and_live_forecast(tmp_path):
         app.state.video.sessions["CAM_01"]=SimpleNamespace(state="running",stop=lambda:None)
         try:
             assert client.get(url).json()["estimate"]==3
+            app.state.analytics.latest=lambda source:current.model_copy(update={"discontinuities":1})
+            assert client.get(url).json()["reason"]=="recent_discontinuity"
+            app.state.analytics.latest=lambda source:current
             assert client.get("/api/v1/predictive/sources/CAM_01/forecast?line_id=MISSING").status_code==404
         finally:
             app.state.video.sessions.pop("CAM_01")

@@ -61,6 +61,7 @@ class WindowAccumulator:
             purpose=s.purpose,start_sequence=self.start.frame_sequence,end_sequence=s.frame_sequence,
             started_at=self.start.received_at,ended_at=s.received_at,duration_seconds=duration,
             sampled_intervals=self.intervals,skipped_frames=self.skipped,limited_intervals=self.limited,
+            discontinuities_at_end=s.discontinuities,
             regions=tuple(RegionAggregate(region_id=k,mean_visible=min(100,v[0]/duration),
                 peak_visible=self.peaks[k],mean_image_coverage_pct=min(100,v[1]/duration))
                 for k,v in self.integrals.items()),

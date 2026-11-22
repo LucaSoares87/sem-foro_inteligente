@@ -25,6 +25,7 @@ class TrafficWindow(Contract):
     sampled_intervals: int = Field(ge=1)
     skipped_frames: int = Field(ge=0)
     limited_intervals: int = Field(ge=0)
+    discontinuities_at_end: int = Field(ge=0)
     regions: tuple[RegionAggregate,...]
     lines: tuple[LineMetric,...]
     operationally_validated: Literal[False]=False

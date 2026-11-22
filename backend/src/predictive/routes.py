@@ -42,6 +42,8 @@ async def forecast(source: str,request: Request,line_id: str=Query(pattern=r"^[A
     latest=request.app.state.analytics.latest(source)
     if latest is None or latest.analytics_epoch!=current.analytics_epoch or session.state!="running" or (latest.received_at-windows[-1].ended_at).total_seconds()>65:
         return {"state":"insufficient_data","reason":"session_changed","operationally_validated":False}
+    if latest.discontinuities!=windows[-1].discontinuities_at_end:
+        return {"state":"insufficient_data","reason":"recent_discontinuity","operationally_validated":False}
     return {**estimate(windows,line_id,direction),"source_id":source,"line_id":line_id,
             "direction":direction,"purpose":current.purpose,"analytics_epoch":current.analytics_epoch,
             "data_through":windows[-1].ended_at}
