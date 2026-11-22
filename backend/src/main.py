@@ -20,6 +20,8 @@ from src.video.routes import router as video_router
 from src.vision.contracts import ModelSpec
 from src.vision.service import VisionService
 from src.vision.routes import router as vision_router
+from src.tracking.service import TrackingService
+from src.tracking.routes import router as tracking_router
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +37,8 @@ def create_app(settings=None):
         except ValueError:
             spec, invalid_model = None, True
         app.state.vision = VisionService(app.state.video,spec,app.state.settings.vision_model_root)
+        app.state.tracking = TrackingService(app.state.vision)
+        app.state.vision.tracking = app.state.tracking
         if invalid_model:
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
@@ -67,6 +71,7 @@ def create_app(settings=None):
     app.include_router(archive_router)
     app.include_router(video_router)
     app.include_router(vision_router)
+    app.include_router(tracking_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -91,6 +96,7 @@ def create_app(settings=None):
             "websocket": "available", "websocket_connections": request.app.state.ws_count,
             "stream_manager": video["state"], "inference_engine": vision["state"],
             "video": video, "vision": vision,
+            "tracking": request.app.state.tracking.status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),

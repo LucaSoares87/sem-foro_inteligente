@@ -56,6 +56,7 @@ class VisionService:
         self.task=None
         self.results={}
         self.processed=self.discarded=0
+        self.tracking=None
 
     def start(self):
         if self.spec is None or self.task is not None:
@@ -98,6 +99,8 @@ class VisionService:
                         continue
                     self.results[source_id]=batch
                     self.processed+=1
+                    if self.tracking is not None:
+                        self.tracking.consume(batch)
                 if not found:
                     await asyncio.sleep(.04)
         except asyncio.CancelledError:
@@ -106,6 +109,8 @@ class VisionService:
             self.error="model_load_failed" if self.state=="loading" else "inference_failed"
             self.state="error"
             self.results.clear()
+            if self.tracking is not None:
+                self.tracking.clear()
         finally:
             await worker.close()
 
@@ -115,6 +120,8 @@ class VisionService:
             await asyncio.gather(self.task,return_exceptions=True)
             self.task=None
         self.results.clear()
+        if self.tracking is not None:
+            self.tracking.clear()
         self.state="not_loaded"
 
     def status(self):
@@ -132,4 +139,4 @@ class VisionService:
                 "purpose":self.spec.purpose if self.spec else None,
                 "model_sha256":self.spec.sha256 if self.spec else None,
                 "processed":self.processed,"discarded":self.discarded,"error_code":self.error,
-                "sources":sources,"tracking_connected":False,"decision_mode":"abstention_only"}
+                "sources":sources,"tracking_connected":self.tracking is not None and self.state=="ready","decision_mode":"abstention_only"}
