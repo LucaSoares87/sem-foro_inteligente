@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isKnownRoute, normalizePath, routeById, routeFromPath, shouldHandleNavigation } from '../src/app/navigation.js'
+import { isKnownRoute, normalizePath, routeById, routeFromPath, shouldHandleNavigation, workspaceUrl } from '../src/app/navigation.js'
 
 test('normalizes and resolves the three application workspaces', () => {
   assert.equal(normalizePath('/operacional/'), '/operacional')
@@ -22,4 +22,10 @@ test('client navigation preserves browser modifier behavior', () => {
   assert.equal(shouldHandleNavigation({ button: 0, ctrlKey: true }), false)
   assert.equal(shouldHandleNavigation({ button: 0, metaKey: true }), false)
   assert.equal(shouldHandleNavigation({ button: 0, shiftKey: true }), false)
+})
+
+test('workspace URL carries only explicit drill-down parameters', () => {
+  assert.equal(workspaceUrl('operations',{intersection:'CR_01'}),'/operacional?intersection=CR_01')
+  assert.equal(workspaceUrl('executive',{intersection:null}),'/executivo')
+  assert.equal(workspaceUrl('missing',{}),'/executivo')
 })

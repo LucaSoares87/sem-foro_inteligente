@@ -20,7 +20,7 @@ class Intersection(Base):
     district: Mapped[str | None] = mapped_column(String(120), nullable=True)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    enabled: Mapped[bool] = mapped_column(default=True)
+    enabled: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
     configuration: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
