@@ -1,5 +1,5 @@
 import React from 'react'
-import { routes } from '../app/navigation.js'
+import { routes, shouldHandleNavigation } from '../app/navigation.js'
 import { StatusPill } from './ui.jsx'
 
 const realtimeLabels = { connecting: 'Conectando', connected: 'Tempo real conectado', disconnected: 'Reconectando' }
@@ -18,7 +18,7 @@ export default function AppShell({ route, navigate, data, healthStatus, realtime
         <nav aria-label="Ambientes da plataforma" className="mt-8 space-y-2">
           {routes.map(item => <a key={item.id} href={item.path}
             aria-current={route.id === item.id ? 'page' : undefined}
-            onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) { event.preventDefault(); navigate(item.id) } }}
+            onClick={event => { if (shouldHandleNavigation(event)) { event.preventDefault(); navigate(item.id) } }}
             className={'nav-item ' + (route.id === item.id ? 'nav-item-active' : '')}>
             <span className="text-sm font-medium">{item.label}</span>
             <span className="mt-1 block text-[11px] leading-4 text-slate-500">{item.description}</span>
@@ -37,7 +37,7 @@ export default function AppShell({ route, navigate, data, healthStatus, realtime
               <h2 className="truncate text-lg font-semibold text-white">{route.label}</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <StatusPill value={healthValue} />
+              <StatusPill value={healthValue} label={healthStatus === 'loading' ? 'Consultando' : undefined} />
               <span className={'status-pill ' + (realtime === 'connected' ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/25 bg-amber-400/10 text-amber-200')}>{realtimeLabels[realtime] || 'Tempo real'}</span>
               <button type="button" onClick={refresh} className="button-secondary">Atualizar</button>
             </div>
@@ -45,7 +45,7 @@ export default function AppShell({ route, navigate, data, healthStatus, realtime
           <nav aria-label="Ambientes da plataforma no celular" className="mt-3 flex gap-2 overflow-x-auto pb-1 lg:hidden">
             {routes.map(item => <a key={item.id} href={item.path}
               aria-current={route.id === item.id ? 'page' : undefined}
-              onClick={event => { event.preventDefault(); navigate(item.id) }}
+              onClick={event => { if (shouldHandleNavigation(event)) { event.preventDefault(); navigate(item.id) } }}
               className={'mobile-tab ' + (route.id === item.id ? 'mobile-tab-active' : '')}>{item.short}</a>)}
           </nav>
         </header>

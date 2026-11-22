@@ -4,7 +4,9 @@ const knownStatuses = {
   available: 'Disponível', not_implemented: 'Não implementado',
   not_loaded: 'Não carregado', ready: 'Pronto', degraded: 'Degradado',
   not_configured: 'Não configurado', idle: 'Inativo', starting: 'Iniciando', loading: 'Carregando modelo', running: 'Recebendo vídeo',
-  reconnecting: 'Reconectando', ended: 'Finalizado', stopped: 'Parado', error: 'Falha'
+  reconnecting: 'Reconectando', ended: 'Finalizado', stopped: 'Parado', error: 'Falha',
+  initializing: 'Inicializando', limited_sampling: 'Amostragem limitada', experimental: 'Experimental',
+  simulation_available: 'Simulação disponível', disabled: 'Desativado'
 }
 
 export function displayStatus(value) {

@@ -25,3 +25,7 @@ export function isKnownRoute(pathname) {
   const normalized = normalizePath(pathname)
   return normalized === '/' || byPath.has(normalized)
 }
+
+export function shouldHandleNavigation(eventLike = {}) {
+  return (eventLike.button ?? 0) === 0 && !eventLike.metaKey && !eventLike.ctrlKey && !eventLike.shiftKey && !eventLike.altKey
+}
