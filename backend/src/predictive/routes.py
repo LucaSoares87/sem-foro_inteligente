@@ -40,7 +40,7 @@ async def forecast(source: str,request: Request,line_id: str=Query(pattern=r"^[A
     if not windows or not 0<=(current.received_at-windows[-1].ended_at).total_seconds()<=65:
         return {"state":"insufficient_data","reason":"history_not_recent","operationally_validated":False}
     latest=request.app.state.analytics.latest(source)
-    if latest is None or latest.analytics_epoch!=current.analytics_epoch or session.state!="running":
+    if latest is None or latest.analytics_epoch!=current.analytics_epoch or session.state!="running" or (latest.received_at-windows[-1].ended_at).total_seconds()>65:
         return {"state":"insufficient_data","reason":"session_changed","operationally_validated":False}
     return {**estimate(windows,line_id,direction),"source_id":source,"line_id":line_id,
             "direction":direction,"purpose":current.purpose,"analytics_epoch":current.analytics_epoch,

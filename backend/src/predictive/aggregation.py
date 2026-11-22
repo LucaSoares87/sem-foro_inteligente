@@ -33,9 +33,10 @@ class WindowAccumulator:
             self.reset(s)
             return None
         old_lines={l.line_id:l for l in self.start.lines}
-        if set(old_lines)!={l.line_id for l in s.lines} or any(
-            l.negative_to_positive<old_lines[l.line_id].negative_to_positive or
-            l.positive_to_negative<old_lines[l.line_id].positive_to_negative for l in s.lines):
+        prev_lines={l.line_id:l for l in p.lines}
+        if set(old_lines)!={l.line_id for l in s.lines} or set(prev_lines)!=set(old_lines) or any(
+            l.negative_to_positive<prev_lines[l.line_id].negative_to_positive or
+            l.positive_to_negative<prev_lines[l.line_id].positive_to_negative for l in s.lines):
             self.reset(s)
             return None
         old_regions={r.region_id:r for r in p.regions}
