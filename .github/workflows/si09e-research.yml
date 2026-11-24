@@ -1,0 +1,78 @@
+name: SI-09E paired diagnostics
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/si09e_*.py'
+      - 'backend/tests/test_si09e_diagnostics.py'
+      - '.github/workflows/si09e-research.yml'
+      - 'docs/si09/si09e-protocol.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired-diagnostics:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install research runtime
+        run: python -m pip install -r requirements-dev.txt gdown==5.2.0
+      - name: Validate dedicated tests and unchanged benchmark
+        run: python -m pytest -q tests/test_si09e_diagnostics.py tests/test_si09d_preflight.py tests/test_benchmarking.py
+      - name: Acquire verified source and model
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si09e-private /tmp/si09e-model /tmp/si09e-results
+          gdown 'https://drive.google.com/uc?id=1c3lvwz7FfTnTEVyLaopPg6NjpJ2pAn7Q' -O /tmp/si09e-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4
+          python -m src.vision.model_artifacts --output /tmp/si09e-model/yolox_s.onnx --spec-output /tmp/si09e-model/model-spec.json
+      - name: Verify identical decoded SI-09D pixels
+        run: |
+          set -euo pipefail
+          python -m src.benchmarking.si09d_preflight --source /tmp/si09e-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4 --output /tmp/si09e-private/preliminary.mkv --evidence /tmp/si09e-results/preflight.json --seconds 32
+          recorded=$(python - <<'PY'
+          import json
+          p=json.load(open('/tmp/si09e-results/preflight.json'))
+          assert p['decoded_pixel_sha256']=='92255ddde5f2b5095c6af4c7628bdc48b6e15f547c41c9c16dfa7475e8270619'
+          assert p['source_start_frame_zero_based']==1 and p['frames']==960
+          print(p['recorded_at'])
+          PY
+          )
+          python -m src.validation.cli prepare-bellevue --video /tmp/si09e-private/preliminary.mkv --dataset-id bellevue-si09e-paired-32s --source-id BELLEVUE_116TH_NE12TH --intersection-code BELLEVUE_116TH_NE12TH --recorded-at "$recorded" --output /tmp/si09e-results/manifest.json
+      - name: Paired real replay at four rates
+        run: python -m src.benchmarking.si09e_diagnostics --manifest /tmp/si09e-results/manifest.json --video /tmp/si09e-private/preliminary.mkv --model-spec /tmp/si09e-model/model-spec.json --model-root /tmp/si09e-model --geometry ../docs/si09/bellevue-preliminary-geometry.json --output /tmp/si09e-results/paired.json
+      - name: Generate blank independent annotation reference and gate
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from src.analytics.contracts import SourceGeometry
+          from src.analytics.engine import TrafficEngine
+          root=Path('/tmp/si09e-results')
+          geo=SourceGeometry.model_validate_json(Path('../docs/si09/bellevue-preliminary-geometry.json').read_text())
+          report=json.loads((root/'paired.json').read_text())
+          assert report['unique_inferences']==960
+          assert [r['frames'] for r in report['runs']]==[960,480,320,160]
+          draft={'video_sha256':report['video_sha256'],'geometry_sha256':TrafficEngine(geo).geometry_hash,
+                 'status':'draft','annotation_method':'manual_visual_without_model_predictions',
+                 'annotator_reference':'pending','full_passage_coverage':False,'counts':[],'queues':[]}
+          (root/'reference-draft.json').write_text(json.dumps(draft,indent=2))
+          PY
+          python -m src.benchmarking.si09e_reference --reference /tmp/si09e-results/reference-draft.json --report /tmp/si09e-results/paired.json --geometry ../docs/si09/bellevue-preliminary-geometry.json --output /tmp/si09e-results/reference-gate.json
+      - name: Preserve aggregate research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si09e-paired-aggregate-evidence
+          path: /tmp/si09e-results/*.json
+          if-no-files-found: ignore
+          retention-days: 3
