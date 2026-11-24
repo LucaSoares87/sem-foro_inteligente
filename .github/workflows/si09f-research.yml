@@ -1,0 +1,98 @@
+name: SI-09F holdout precision
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/si09f_validation.py'
+      - 'backend/src/benchmarking/si09d_preflight.py'
+      - 'backend/tests/test_si09f_validation.py'
+      - '.github/workflows/si09f-research.yml'
+      - 'docs/si09/si09f-protocol.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  holdout:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: morning_0708
+            file: Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4
+            public_id: 11iEaThdLlOHeIrO53eZUtlyNPu0Irg3X
+          - case: morning_1108
+            file: Bellevue_116th_NE12th__2017-09-11_11-08-33.mp4
+            public_id: 1ze-CefZz5lwA2cdhXVgVlfndyoPH5H6Q
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      CASE: ${{ matrix.case }}
+      SOURCE_FILE: ${{ matrix.file }}
+      PUBLIC_ID: ${{ matrix.public_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing research runtime
+        run: python -m pip install -r requirements-dev.txt gdown==5.2.0
+      - name: Test independent gate and prior protocols
+        run: python -m pytest -q tests/test_si09f_validation.py tests/test_si09e_diagnostics.py tests/test_si09d_preflight.py tests/test_benchmarking.py
+      - name: Acquire distinct official source and pinned model
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si09f-private /tmp/si09f-model /tmp/si09f-results
+          gdown "https://drive.google.com/uc?id=$PUBLIC_ID" -O "/tmp/si09f-private/$SOURCE_FILE"
+          python -m src.vision.model_artifacts --output /tmp/si09f-model/yolox_s.onnx --spec-output /tmp/si09f-model/model-spec.json
+      - name: Lossless preparation and blinded reference packet
+        run: |
+          set -euo pipefail
+          python -m src.benchmarking.si09f_validation prepare --case "$CASE" --source "/tmp/si09f-private/$SOURCE_FILE" --video /tmp/si09f-private/holdout.mkv --geometry ../docs/si09/bellevue-preliminary-geometry.json --output /tmp/si09f-results
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/si09f-results')
+          draft=json.loads((root/'annotation-packet.json').read_text())['reference_template']
+          for name in ('annotation-a.json','annotation-b.json'):
+              (root/name).write_text(json.dumps(draft,indent=2))
+          PY
+      - name: Preserve blinded packets without predictions
+        uses: actions/upload-artifact@v4
+        with:
+          name: si09f-blind-${{ matrix.case }}
+          path: |
+            /tmp/si09f-results/annotation-packet.json
+            /tmp/si09f-results/annotation-a.json
+            /tmp/si09f-results/annotation-b.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Compare unchanged baseline and temporal candidate on holdout
+        run: python -m src.benchmarking.si09e_diagnostics --manifest /tmp/si09f-results/manifest.json --video /tmp/si09f-private/holdout.mkv --model-spec /tmp/si09f-model/model-spec.json --model-root /tmp/si09f-model --geometry ../docs/si09/bellevue-preliminary-geometry.json --output /tmp/si09f-results/paired.json
+      - name: Verify independent-reference gate stays blocked
+        run: |
+          set -euo pipefail
+          python -m src.benchmarking.si09f_validation gate --case "$CASE" --preflight /tmp/si09f-results/preflight.json --geometry ../docs/si09/bellevue-preliminary-geometry.json --report /tmp/si09f-results/paired.json --annotation-a /tmp/si09f-results/annotation-a.json --annotation-b /tmp/si09f-results/annotation-b.json --output /tmp/si09f-results/gate.json
+          python - <<'PY'
+          import json
+          g=json.load(open('/tmp/si09f-results/gate.json'))
+          assert g['state']=='BLOCKED_BY_INDEPENDENT_ANNOTATION'
+          assert g['missing_keys_a']==g['missing_keys_b']==68
+          assert g['accuracy_metrics'] is None and not g['candidate_promoted']
+          PY
+      - name: Preserve aggregate holdout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si09f-evidence-${{ matrix.case }}
+          path: |
+            /tmp/si09f-results/preflight.json
+            /tmp/si09f-results/manifest.json
+            /tmp/si09f-results/paired.json
+            /tmp/si09f-results/gate.json
+          if-no-files-found: ignore
+          retention-days: 30
