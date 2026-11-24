@@ -8,8 +8,8 @@ class FpsBenchmarkCriteria(Contract):
     purpose: Literal["engineering_bellevue_replay"]="engineering_bellevue_replay"
     approval_reference: str = Field(min_length=2,max_length=240)
     approved_at: AwareDatetime
-    reference_fps: float = Field(default=30,ge=1,le=30)
-    target_fps: tuple[float,...] = Field(default=(30,15,10,5),min_length=2,max_length=8)
+    reference_fps: int = Field(default=30,strict=True,ge=1,le=30)
+    target_fps: tuple[int,...] = Field(default=(30,15,10,5),min_length=2,max_length=8)
     max_queue_mae_vehicles: float = Field(default=1.0,ge=0,le=20)
     max_count_relative_error: float = Field(default=.05,ge=0,le=1)
     max_x_mae_vehicles: float = Field(default=1.0,ge=0,le=20)
@@ -43,7 +43,7 @@ class FpsSecondObservation(Contract):
     optimization_state: Literal["simulation_preference","abstain"]
 
 class FpsRunSummary(Contract):
-    target_fps: float = Field(gt=0,le=30)
+    target_fps: int = Field(strict=True,ge=1,le=30)
     source_fps: float = Field(gt=0,le=30)
     source_frames_seen: int = Field(ge=1)
     processed_frames: int = Field(ge=1)
@@ -58,8 +58,8 @@ class FpsRunSummary(Contract):
     mean_observation_confidence: float = Field(ge=0,le=1)
 
 class FpsComparison(Contract):
-    target_fps: float = Field(gt=0,le=30)
-    reference_fps: float = Field(gt=0,le=30)
+    target_fps: int = Field(strict=True,ge=1,le=30)
+    reference_fps: int = Field(strict=True,ge=1,le=30)
     common_seconds: int = Field(ge=0)
     decision_comparable_seconds: int = Field(ge=0)
     x_comparable_seconds: int = Field(ge=0)
@@ -84,7 +84,7 @@ class FpsBenchmarkReport(Contract):
     commercial_demo_authorized: bool
     runs: tuple[FpsRunSummary,...]
     comparisons: tuple[FpsComparison,...]
-    engineering_recommended_min_fps: float | None = Field(default=None,gt=0,le=30)
+    engineering_recommended_min_fps: int | None = Field(default=None,ge=1,le=30)
     benchmark_complete: Literal[True]=True
     operationally_validated: Literal[False]=False
     physical_actuation: Literal[False]=False
