@@ -35,13 +35,13 @@ if [ "$TARGET_DB" = "$CURRENT_DB" ] && [ "${ALLOW_DESTRUCTIVE_RESTORE:-NO}" != "
   exit 1
 fi
 
-EXISTS=$(docker compose exec -T -e TARGET_DB="$TARGET_DB" postgres sh -ceu   'psql -U "$POSTGRES_USER" -d postgres -v target="$TARGET_DB" -Atqc "SELECT 1 FROM pg_database WHERE datname = :'\''target'\''"')
+EXISTS=$(docker compose exec -T -e TARGET_DB="$TARGET_DB" postgres sh -ceu 'psql -U "$POSTGRES_USER" -d postgres -Atqc "SELECT 1 FROM pg_database WHERE datname = '\''$TARGET_DB'\''"')
 if [ "$EXISTS" = "1" ]; then
   if [ "${RESTORE_REPLACE:-NO}" != "YES" ]; then
     echo "banco destino já existe; defina RESTORE_REPLACE=YES para substituí-lo" >&2
     exit 1
   fi
-  docker compose exec -T -e TARGET_DB="$TARGET_DB" postgres sh -ceu     'psql -U "$POSTGRES_USER" -d postgres -v target="$TARGET_DB" -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = :'\''target'\'' AND pid <> pg_backend_pid();" >/dev/null'
+  docker compose exec -T -e TARGET_DB="$TARGET_DB" postgres sh -ceu 'psql -U "$POSTGRES_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '\''$TARGET_DB'\'' AND pid <> pg_backend_pid();" >/dev/null'
   docker compose exec -T -e TARGET_DB="$TARGET_DB" postgres sh -ceu 'dropdb -U "$POSTGRES_USER" "$TARGET_DB"'
 fi
 
