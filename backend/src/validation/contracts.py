@@ -39,8 +39,8 @@ class EvidenceRecord(Contract):
                     raise ValueError("human acceptance requires explicit authorization")
             elif not self.artifact_sha256 or not self.executed_at:
                 raise ValueError("ready evidence requires artifact and execution time")
-            if self.origin=="synthetic" and self.gate in FIELD_ONLY:
-                raise ValueError("synthetic evidence cannot satisfy field gate")
+            if self.origin=="synthetic" and self.gate in PILOT_REQUIRED:
+                raise ValueError("synthetic evidence cannot satisfy pilot gate")
         if self.state=="failed" and not self.note:
             raise ValueError("failed evidence requires note")
         return self
@@ -119,15 +119,43 @@ class CountValue(Contract):
 
 class GroundTruth(Contract):
     schema_version: Literal[1]=1
-    dataset_id: str
+    dataset_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{2,80}$")
     annotations: tuple[GroundTruthObject,...] = Field(max_length=200000)
     counts: tuple[CountValue,...] = Field(default=(),max_length=5000)
 
+    @model_validator(mode="after")
+    def unique_entries(self):
+        seen=set()
+        for item in self.annotations:
+            key=(item.frame_sequence,item.object_id)
+            if key in seen:
+                raise ValueError("duplicate ground truth object in frame")
+            seen.add(key)
+        keys=[(x.line_id,x.direction,x.label) for x in self.counts]
+        if len(keys)!=len(set(keys)):
+            raise ValueError("duplicate ground truth count key")
+        return self
+
 class Predictions(Contract):
     schema_version: Literal[1]=1
-    dataset_id: str
+    dataset_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{2,80}$")
     annotations: tuple[PredictedObject,...] = Field(max_length=200000)
     counts: tuple[CountValue,...] = Field(default=(),max_length=5000)
+
+    @model_validator(mode="after")
+    def unique_entries(self):
+        per_frame_tracks=set()
+        for item in self.annotations:
+            if item.track_id is None:
+                continue
+            key=(item.frame_sequence,item.track_id)
+            if key in per_frame_tracks:
+                raise ValueError("duplicate predicted track in frame")
+            per_frame_tracks.add(key)
+        keys=[(x.line_id,x.direction,x.label) for x in self.counts]
+        if len(keys)!=len(set(keys)):
+            raise ValueError("duplicate predicted count key")
+        return self
 
 class EvaluationThresholds(Contract):
     detection_macro_f1: float = Field(ge=0,le=1)
@@ -146,6 +174,15 @@ class EvaluationRequest(Contract):
     def same_dataset(self):
         if self.ground_truth.dataset_id!=self.manifest.dataset_id or self.predictions.dataset_id!=self.manifest.dataset_id:
             raise ValueError("dataset id mismatch")
+        allowed=set(self.manifest.classes)
+        for item in (*self.ground_truth.annotations,*self.predictions.annotations):
+            if item.frame_sequence>self.manifest.frame_count:
+                raise ValueError("annotation beyond manifest frame count")
+            if item.label not in allowed:
+                raise ValueError("annotation class outside manifest")
+        for item in (*self.ground_truth.counts,*self.predictions.counts):
+            if item.label is not None and item.label not in allowed:
+                raise ValueError("count class outside manifest")
         return self
 
 class ClassMetric(Contract):
