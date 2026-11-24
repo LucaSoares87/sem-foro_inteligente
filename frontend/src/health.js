@@ -10,7 +10,9 @@ const knownStatuses = {
   blocked: 'Bloqueado', not_run: 'Não executado', failed: 'Falhou',
   pending_human: 'Aceite humano pendente',
   ready_for_supervised_pilot: 'Pronto para piloto supervisionado',
-  blocked_by_field_evidence: 'Bloqueado por evidência de campo'
+  blocked_by_field_evidence: 'Bloqueado por evidência de campo',
+  simulation_preference: 'Preferência simulada', abstain: 'Abstenção',
+  simulation_only: 'Somente simulação'
 }
 
 export function displayStatus(value) {
