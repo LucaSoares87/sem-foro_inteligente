@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "purpose": "engineering_bellevue_replay",
+  "approval_reference": "SI-09 Bellevue FPS engineering stability criteria v1; not municipal acceptance",
+  "approved_at": "2026-11-24T17:00:00Z",
+  "reference_fps": 30,
+  "target_fps": [30, 15, 10, 5],
+  "max_queue_mae_vehicles": 1.0,
+  "max_count_relative_error": 0.05,
+  "max_x_mae_vehicles": 1.0,
+  "min_preference_agreement": 0.95,
+  "min_common_seconds": 30,
+  "min_decision_seconds": 10,
+  "min_x_seconds": 5
+}

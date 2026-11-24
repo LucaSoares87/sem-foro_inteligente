@@ -5,6 +5,9 @@ import json
 import os
 from pathlib import Path
 from src.analytics.contracts import SourceGeometry
+from src.benchmarking.bellevue import prepare_bellevue_manifest
+from src.benchmarking.contracts import FpsBenchmarkCriteria
+from src.benchmarking.runner import run_fps_sweep
 from src.validation.contracts import (
     CalibrationChecklist,DatasetManifest,EvaluationRequest,EvaluationThresholds,
     GroundTruth,Predictions,calibration_assessment
@@ -74,6 +77,33 @@ def calibration_command(args):
     print(json.dumps(result,sort_keys=True))
     return 0 if result["state"]=="ready" else 4
 
+def prepare_bellevue_command(args):
+    manifest=prepare_bellevue_manifest(args.video,args.dataset_id,args.source_id,
+        args.intersection_code,args.recorded_at)
+    file_sha=_write_model(args.output,manifest)
+    print(json.dumps({
+        "dataset_id":manifest.dataset_id,"output":args.output,
+        "manifest_file_sha256":file_sha,"video_sha256":manifest.video_sha256,
+        "commercial_demo_authorized":manifest.commercial_demo_authorized
+    },sort_keys=True))
+    return 0
+
+def fps_sweep_command(args):
+    manifest=load_json_model(args.manifest,DatasetManifest)
+    spec=load_json_model(args.model_spec,ModelSpec)
+    geometry=load_json_model(args.geometry,SourceGeometry)
+    criteria=load_json_model(args.criteria,FpsBenchmarkCriteria)
+    report=asyncio.run(run_fps_sweep(manifest,args.video,spec,args.model_root,geometry,criteria))
+    file_sha=_write_model(args.output,report)
+    print(json.dumps({
+        "dataset_id":report.dataset_id,"output":args.output,
+        "benchmark_file_sha256":file_sha,
+        "recommended_min_fps":report.engineering_recommended_min_fps,
+        "commercial_demo_authorized":report.commercial_demo_authorized,
+        "operationally_validated":report.operationally_validated
+    },sort_keys=True))
+    return 0
+
 def main(argv=None):
     parser=argparse.ArgumentParser(prog="si-validation")
     sub=parser.add_subparsers(dest="command",required=True)
@@ -105,6 +135,25 @@ def main(argv=None):
     cal=sub.add_parser("calibration")
     cal.add_argument("--input",required=True)
     cal.set_defaults(handler=calibration_command)
+
+    prep=sub.add_parser("prepare-bellevue")
+    prep.add_argument("--video",required=True)
+    prep.add_argument("--dataset-id",required=True)
+    prep.add_argument("--source-id",required=True)
+    prep.add_argument("--intersection-code",required=True)
+    prep.add_argument("--recorded-at")
+    prep.add_argument("--output",required=True)
+    prep.set_defaults(handler=prepare_bellevue_command)
+
+    fps=sub.add_parser("fps-sweep")
+    fps.add_argument("--manifest",required=True)
+    fps.add_argument("--video",required=True)
+    fps.add_argument("--model-spec",required=True)
+    fps.add_argument("--model-root",required=True)
+    fps.add_argument("--geometry",required=True)
+    fps.add_argument("--criteria",required=True)
+    fps.add_argument("--output",required=True)
+    fps.set_defaults(handler=fps_sweep_command)
 
     args=parser.parse_args(argv)
     return args.handler(args)

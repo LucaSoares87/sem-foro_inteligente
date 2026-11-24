@@ -25,3 +25,7 @@ O framework integrado de homologação, avaliação, benchmark, recovery e aceit
 A SI-09 é uma evolução experimental e consultiva sobre os motores já consolidados. Ela não substitui a SI-06: a SI-06 permanece baseline sintético isolado, enquanto a SI-09 transforma estados observados de fila em experimentos contrafactuais. Os pesos da função de custo são defaults de engenharia ainda não homologados; por isso nenhuma preferência simulada pode ser convertida automaticamente em comando semafórico.
 
 Bellevue entra somente como `external_real_replay`. O dataset pode acelerar desenvolvimento e robustez, mas não satisfaz os gates de campo de Recife e não está autorizado para demonstração comercial pela configuração enquanto não existir autorização escrita.
+
+
+### Bellevue FPS sweep
+A infraestrutura de replay 30/15/10/5 FPS está pronta em branch experimental para reutilizar o pipeline SI-09 e comparar fila, chegada/descarga, contagem, X e preferência contra 30 FPS. A execução real permanece `BLOCKED_BY_VIDEO_AND_MODEL_BYTES`: o vídeo oficial não está versionado no GitHub e os espelhos localizados são grandes; a main também não contém pesos ONNX autorizados. Nenhum resultado numérico Bellevue será fabricado.
