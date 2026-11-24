@@ -47,6 +47,23 @@ jobs:
       - run: python -m pytest -q tests/test_decision.py --cov=src.decision.engine --cov=src.decision.service --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_queue_optimization.py --cov=src.queueing.engine --cov=src.optimization.engine --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_geography.py tests/test_history_view.py tests/test_operations.py tests/test_validation.py tests/test_benchmarking.py
+      - name: Verify official YOLOX-S artifact and adapter
+        run: |
+          set -euo pipefail
+          python -m src.vision.model_artifacts --output /tmp/yolox_s.onnx --spec-output /tmp/yolox_s.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from src.vision.contracts import ModelSpec
+          from src.vision.yolo import YoloDetector
+          spec=ModelSpec.model_validate(json.loads(Path('/tmp/yolox_s.json').read_text()))
+          detector=YoloDetector(Path('/tmp/yolox_s.onnx'),spec)
+          result=detector.infer(np.zeros((720,1280,3),dtype=np.uint8))
+          assert isinstance(result,tuple)
+          assert spec.architecture=='yolox'
+          print({'architecture':spec.architecture,'detections_on_zero_frame':len(result)})
+          PY
       - run: alembic upgrade head && alembic check
       - run: alembic downgrade base && alembic upgrade head
       - run: ARCHIVE_POSTGRES_TEST=1 python -m pytest -q tests/test_archive_postgres.py tests/test_history_postgres.py
