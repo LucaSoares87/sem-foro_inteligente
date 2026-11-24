@@ -81,7 +81,7 @@ class TrafficWindowRecord(Base):
 class OperationalAuditEvent(Base):
     __tablename__ = "operational_audit_events"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    request_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    request_id: Mapped[str] = mapped_column(String(64), index=True)
     actor: Mapped[str] = mapped_column(String(160))
     roles: Mapped[str] = mapped_column(String(120))
     method: Mapped[str] = mapped_column(String(8))

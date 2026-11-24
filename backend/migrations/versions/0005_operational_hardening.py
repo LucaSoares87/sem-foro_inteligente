@@ -17,7 +17,7 @@ def upgrade():
         sa.Column("status_code",sa.Integer(),nullable=False),
         sa.Column("outcome",sa.String(40),nullable=False),
         sa.Column("created_at",sa.DateTime(timezone=True),server_default=sa.func.now(),nullable=False))
-    op.create_index("ix_operational_audit_events_request_id","operational_audit_events",["request_id"],unique=True)
+    op.create_index("ix_operational_audit_events_request_id","operational_audit_events",["request_id"],unique=False)
     op.create_index("ix_operational_audit_events_created_at","operational_audit_events",["created_at"])
 
 def downgrade():
