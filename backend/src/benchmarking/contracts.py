@@ -16,6 +16,7 @@ class FpsBenchmarkCriteria(Contract):
     min_preference_agreement: float = Field(default=.95,ge=0,le=1)
     min_common_seconds: int = Field(default=30,ge=1,le=3600)
     min_decision_seconds: int = Field(default=10,ge=1,le=3600)
+    min_x_seconds: int = Field(default=5,ge=1,le=3600)
 
     @model_validator(mode="after")
     def validate_rates(self):
