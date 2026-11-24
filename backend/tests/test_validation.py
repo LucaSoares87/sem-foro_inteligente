@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 from types import SimpleNamespace
 import cv2
 import pytest
@@ -23,6 +23,7 @@ def manifest(**changes):
     values=dict(dataset_id="case-01",origin="field",source_id="CAM_01",
         intersection_code="CR_01",video_filename="case.mp4",video_sha256="a"*64,
         provenance="authorized field capture",license_ref="internal authorization",
+        authorization_ref="field-capture-ticket",recorded_at=NOW,
         fps=10,width=640,height=360,frame_count=10,classes=("car","bus"))
     values.update(changes)
     return DatasetManifest(**values)
@@ -48,7 +49,9 @@ def perfect_predictions():
     ))
 
 def thresholds(**changes):
-    values=dict(detection_macro_f1=.8,tracking_match_recall=.8,
+    values=dict(purpose="field_acceptance",approval_reference="approved-thresholds-v1",
+                approved_at=NOW-timedelta(minutes=5),
+                detection_macro_f1=.8,tracking_match_recall=.8,
                 max_identity_switch_rate=.1,count_accuracy=.8)
     values.update(changes)
     return EvaluationThresholds(**values)
@@ -67,6 +70,8 @@ def test_iou_and_perfect_evaluation_are_deterministic():
     assert first==second
     assert first.input_sha256==second.input_sha256
     assert first.result_sha256==second.result_sha256
+    assert first.manifest_sha256 and first.ground_truth_sha256
+    assert first.predictions_sha256 and first.thresholds_sha256
     assert first.detection_macro_f1==1
     assert first.tracking_match_recall==1
     assert first.identity_switches==0
@@ -96,12 +101,20 @@ def test_degraded_evaluation_detects_misses_false_positive_switch_and_count_erro
     assert result.count_accuracy==0
     assert result.meets_supplied_thresholds is False
 
-def test_contracts_reject_provenance_mismatches_and_duplicates():
+def test_contracts_reject_provenance_mismatches_duplicates_and_post_capture_thresholds():
     with pytest.raises(ValidationError):
         EvaluationRequest(manifest=manifest(frame_count=1),ground_truth=truth(),
             predictions=perfect_predictions(),thresholds=thresholds())
     with pytest.raises(ValidationError):
         EvaluationRequest(manifest=manifest(classes=("car",)),ground_truth=truth(),
+            predictions=perfect_predictions(),thresholds=thresholds())
+    with pytest.raises(ValidationError):
+        EvaluationRequest(manifest=manifest(),ground_truth=truth(),predictions=perfect_predictions(),
+            thresholds=thresholds(approved_at=NOW+timedelta(seconds=1)))
+    synthetic_manifest=manifest(origin="synthetic",authorization_ref="synthetic-generation",
+                                provenance="synthetic test",recorded_at=NOW)
+    with pytest.raises(ValidationError):
+        EvaluationRequest(manifest=synthetic_manifest,ground_truth=truth(),
             predictions=perfect_predictions(),thresholds=thresholds())
     with pytest.raises(ValidationError):
         GroundTruth(dataset_id="case-01",annotations=(
@@ -139,6 +152,8 @@ def test_validation_service_stays_blocked_until_all_pilot_evidence_exists():
     assert status["pilot_decision"]=="blocked_by_field_evidence"
     assert "human_acceptance" in status["missing_evidence"]
     assert status["physical_actuation"] is False
+    summary=ValidationService(video,vision).health_status()
+    assert "gates" not in summary and "runtime_observation" not in summary
     records=[]
     for gate in (
         "authorized_model","physical_camera","calibration","field_ground_truth",
@@ -193,7 +208,10 @@ def test_validation_api_reports_blocked_not_fake_ready(tmp_path):
         assert payload["pilot_ready"] is False
         assert payload["operational_decision"]=="abstain"
         health=client.get("/health")
-        assert health.json()["validation"]["pilot_ready"] is False
+        summary=health.json()["validation"]
+        assert summary["pilot_ready"] is False
+        assert "gates" not in summary
+        assert "runtime_observation" not in summary
 
 def test_invalid_evidence_config_is_visible_without_faking_gate(tmp_path):
     settings=Settings(app_env="test",database_url=f"sqlite:///{tmp_path/'invalid.db'}",

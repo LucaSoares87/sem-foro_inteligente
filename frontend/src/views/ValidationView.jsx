@@ -1,5 +1,6 @@
 import React from 'react'
 import {displayStatus} from '../health.js'
+import useValidation from '../useValidation.js'
 import {EmptyState,Panel,SectionHeading,StatusPill} from '../components/ui.jsx'
 
 const labels={
@@ -21,8 +22,10 @@ function shortHash(value){
   return value ? value.slice(0,10)+'…'+value.slice(-6) : '—'
 }
 
-export default function ValidationView({data}){
-  const validation=data?.validation
+export default function ValidationView(){
+  const {data:validation,status}=useValidation()
+  if(status==='loading'&&!validation) return <p className="text-sm text-slate-400">Consultando scorecard de homologação...</p>
+  if(status==='error'&&!validation) return <EmptyState title="Homologação indisponível" description="A API protegida de validação não respondeu. Verifique autenticação e disponibilidade."/>
   if(!validation) return <EmptyState title="Homologação indisponível" description="O contrato de validação ainda não foi carregado pelo backend."/>
   const runtime=validation.runtime_observation||{}
   const missing=new Set(validation.missing_evidence||[])
@@ -51,6 +54,7 @@ export default function ValidationView({data}){
       {!validation.pilot_ready&&<div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
         A aplicação permanece demonstrável e consultiva, mas o piloto não deve ser apresentado como homologado enquanto os gates de campo abaixo estiverem pendentes.
       </div>}
+      {status==='error'&&validation&&<p className="mt-3 text-xs text-amber-300">A atualização recente do scorecard falhou; a última leitura válida permanece em tela.</p>}
     </Panel>
 
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
