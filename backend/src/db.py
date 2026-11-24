@@ -1,9 +1,9 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, UniqueConstraint, DateTime, String, JSON, ForeignKey, CheckConstraint, Float, text, func
+from sqlalchemy import BigInteger, Integer, UniqueConstraint, DateTime, String, JSON, ForeignKey, CheckConstraint, Float, text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import create_engine
 
-SCHEMA_REVISION = "0004_intersection_geography"
+SCHEMA_REVISION = "0005_operational_hardening"
 
 class Base(DeclarativeBase):
     pass
@@ -76,3 +76,16 @@ class TrafficWindowRecord(Base):
     start_sequence: Mapped[int] = mapped_column(BigInteger)
     payload: Mapped[dict] = mapped_column(JSON)
     digest: Mapped[str] = mapped_column(String(64))
+
+
+class OperationalAuditEvent(Base):
+    __tablename__ = "operational_audit_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    request_id: Mapped[str] = mapped_column(String(64), index=True)
+    actor: Mapped[str] = mapped_column(String(160))
+    roles: Mapped[str] = mapped_column(String(120))
+    method: Mapped[str] = mapped_column(String(8))
+    route: Mapped[str] = mapped_column(String(200))
+    status_code: Mapped[int] = mapped_column(Integer)
+    outcome: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)

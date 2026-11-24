@@ -10,6 +10,7 @@ Reconstrução operacional proposta a partir das decisões já discutidas. A esp
 | SI-05 | ROIs, contagem, filas, ocupação, congestionamento e previsão | calibração, ground truth e limites de confiança |
 | SI-06 | Simulação e recomendações explicáveis | restrições, abstenção, fallback consultivo, comparação com baseline |
 | SI-07 | Painel operacional e executivo, múltiplos cruzamentos e histórico | contratos, filtros, acessibilidade, testes de ponta a ponta |
-| SI-08 | Auditoria, segurança, observabilidade, implantação e demonstração | ameaças, dependências, backup/restore, cargas, ensaio humano |
+| SI-08A | Hardening corporativo: RBAC externo, auditoria, observabilidade, backup/restore, limites e carga | ameaças, migração, testes negativos, restore real e CI integrado |
+| SI-08B | Homologação de campo: modelo/câmera reais autorizados, calibração, ground truth, hardware-alvo e aceite humano | evidência de campo, métricas por classe, recuperação e autorização humana |
 
 O avanço depende de evidência registrada, não de pontuações estimadas. Sem controle físico em todas as missões.

@@ -34,6 +34,11 @@ from src.geography.contracts import load_registry
 from src.geography.routes import router as geography_router
 from src.geography.service import GeographyService
 from src.geography.store import GeographyStore
+from src.operations.audit import AuditStore
+from src.operations.http import install_http_middleware, websocket_authorized
+from src.operations.metrics import OperationsMetrics
+from src.operations.routes import router as operations_router
+from src.operations.security import security_status
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +67,7 @@ def create_app(settings=None):
         if invalid_model:
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
+        app.state.audit_store = AuditStore(app.state.engine)
         app.state.geography = GeographyService(GeographyStore(app.state.engine))
         raw_registry = app.state.settings.intersection_registry_json.get_secret_value()
         try:
@@ -104,6 +110,8 @@ def create_app(settings=None):
                     await run_in_threadpool(app.state.engine.dispose)
 
     app = FastAPI(title="Semáforos Inteligentes", version="0.1.0", lifespan=lifespan)
+    app.state.operations_metrics = OperationsMetrics()
+    install_http_middleware(app)
 
     app.include_router(ingestion_router)
     app.include_router(pipeline_router)
@@ -115,6 +123,7 @@ def create_app(settings=None):
     app.include_router(predictive_router)
     app.include_router(decision_router)
     app.include_router(geography_router)
+    app.include_router(operations_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -145,6 +154,11 @@ def create_app(settings=None):
             "predictive": request.app.state.history.status(),
             "decision": decision_status(),
             "geography": geography,
+            "operations": {
+                "security": security_status(request.app.state.settings),
+                "audit_enabled": request.app.state.settings.audit_enabled,
+                "metrics": request.app.state.operations_metrics.snapshot()
+            },
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),
@@ -154,6 +168,9 @@ def create_app(settings=None):
 
     @app.websocket("/api/v1/ws/realtime")
     async def realtime(ws: WebSocket):
+        if not websocket_authorized(ws):
+            await ws.close(code=1008)
+            return
         origins = {x.strip() for x in ws.app.state.settings.allowed_origins.split(",") if x.strip()}
         origin = ws.headers.get("origin")
         # Browser sessions require an allowlisted origin; native clients have no Origin.

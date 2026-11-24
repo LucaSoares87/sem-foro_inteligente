@@ -17,3 +17,7 @@ dist/
 *.mkv
 *.mov
 *.onnx.data
+backups/
+.ci-backups/
+*.dump
+*.dump.sha256

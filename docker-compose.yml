@@ -13,6 +13,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 15
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-1g}
+    cpus: ${POSTGRES_CPU_LIMIT:-2.0}
+    pids_limit: 256
+    stop_grace_period: 30s
     networks: [database]
   migrate:
     build: ./backend
@@ -22,10 +26,23 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-traffic}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      AUTH_MODE: ${AUTH_MODE:-disabled}
+      AUTH_USER_HEADER: ${AUTH_USER_HEADER:-x-si-user}
+      AUTH_ROLES_HEADER: ${AUTH_ROLES_HEADER:-x-si-roles}
+      AUDIT_ENABLED: ${AUDIT_ENABLED:-true}
     command: ["alembic","upgrade","head"]
     depends_on:
       postgres:
         condition: service_healthy
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${MIGRATE_MEMORY_LIMIT:-512m}
+    cpus: ${MIGRATE_CPU_LIMIT:-1.0}
+    pids_limit: 128
     networks: [database]
   backend:
     build: ./backend
@@ -46,6 +63,16 @@ services:
       interval: 10s
       timeout: 8s
       retries: 6
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-2g}
+    cpus: ${BACKEND_CPU_LIMIT:-2.0}
+    pids_limit: 256
+    stop_grace_period: 30s
     networks: [database, application]
   frontend:
     build: ./frontend
@@ -60,6 +87,13 @@ services:
       interval: 10s
       timeout: 8s
       retries: 6
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-256m}
+    cpus: ${FRONTEND_CPU_LIMIT:-1.0}
+    pids_limit: 128
+    stop_grace_period: 15s
     networks: [application]
 volumes:
   pgdata:
