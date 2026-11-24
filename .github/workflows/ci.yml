@@ -47,6 +47,39 @@ jobs:
       - run: python -m pytest -q tests/test_decision.py --cov=src.decision.engine --cov=src.decision.service --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_queue_optimization.py --cov=src.queueing.engine --cov=src.optimization.engine --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_geography.py tests/test_history_view.py tests/test_operations.py tests/test_validation.py tests/test_benchmarking.py
+      - name: Verify official YOLOX-S artifact and adapter
+        run: |
+          set -euo pipefail
+          python -m src.vision.model_artifacts --output /tmp/yolox_s.onnx --spec-output /tmp/yolox_s.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from src.vision.contracts import ModelSpec
+          from src.vision.yolo import YoloDetector
+          spec=ModelSpec.model_validate(json.loads(Path('/tmp/yolox_s.json').read_text()))
+          detector=YoloDetector(Path('/tmp/yolox_s.onnx'),spec)
+          result=detector.infer(np.zeros((720,1280,3),dtype=np.uint8))
+          assert isinstance(result,tuple)
+          assert spec.architecture=='yolox'
+          print({'architecture':spec.architecture,'detections_on_zero_frame':len(result)})
+          PY
+      - name: Package verified YOLOX-S for research handoff
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si09c-model
+          cp /tmp/yolox_s.onnx /tmp/si09c-model/yolox_s.onnx
+          cp /tmp/yolox_s.json /tmp/si09c-model/yolox_s.model-spec.json
+          curl --fail --location --retry 2 --max-time 60 https://raw.githubusercontent.com/Megvii-BaseDetection/YOLOX/0.1.1rc0/LICENSE -o /tmp/si09c-model/LICENSE
+          grep -q 'Apache License' /tmp/si09c-model/LICENSE
+          (cd /tmp/si09c-model && sha256sum yolox_s.onnx > SHA256SUMS && sha256sum -c SHA256SUMS)
+      - name: Upload verified research model package
+        uses: actions/upload-artifact@v4
+        with:
+          name: yolox-s-verified-model
+          path: /tmp/si09c-model/
+          if-no-files-found: error
+          retention-days: 3
       - run: alembic upgrade head && alembic check
       - run: alembic downgrade base && alembic upgrade head
       - run: ARCHIVE_POSTGRES_TEST=1 python -m pytest -q tests/test_archive_postgres.py tests/test_history_postgres.py

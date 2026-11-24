@@ -16,7 +16,8 @@ from src.config import Settings
 from src.main import create_app
 from src.vision.contracts import Detection, ModelSpec
 from src.vision.service import InferenceWorker
-from src.vision.yolo import decode, preprocess, YoloDetector
+from src.vision.model_artifacts import YOLOX_S_SHA256, fetch_yolox_s
+from src.vision.yolo import decode, decode_yolox, preprocess, preprocess_yolox, YoloDetector
 
 def fixture_model(path):
     # A deterministic ONNX graph exercising a real DNN forward pass.
@@ -188,3 +189,62 @@ def test_missing_model_fail_closed(tmp_path):
         assert status["error_code"]=="model_load_failed"
         assert client.get("/health/live").status_code==200
         assert client.get("/health").json()["video"]["inference_connected"] is False
+
+
+def test_yolox_preprocess_and_decode_contract():
+    image=np.zeros((320,640,3),np.uint8)
+    image[:,:,:]=[10,20,30]
+    blob,geometry=preprocess_yolox(image)
+    assert blob.shape==(1,3,640,640)
+    assert blob.dtype==np.float32
+    assert blob[0,:,0,0].tolist()==[10.0,20.0,30.0]
+    assert blob[0,:,400,400].tolist()==[114.0,114.0,114.0]
+    raw=np.zeros((1,8400,85),np.float32)
+    index=20*80+40
+    raw[0,index,:4]=[0,0,np.log(20),np.log(10)]
+    raw[0,index,4]=.9
+    raw[0,index,5+2]=.8
+    detections=decode_yolox(raw,geometry,confidence=.25)
+    assert len(detections)==1
+    assert detections[0].label=="car"
+    assert detections[0].confidence==pytest.approx(.72)
+    assert detections[0].xyxy==pytest.approx((.375,.375,.625,.625),abs=1e-5)
+    with pytest.raises(ValueError,match="unsupported YOLOX"):
+        decode_yolox(np.zeros((1,84,8400),np.float32),geometry)
+    raw[0,index,4]=1.1
+    with pytest.raises(ValueError,match="scores"):
+        decode_yolox(raw,geometry)
+
+
+def test_model_spec_architecture_is_backward_compatible(tmp_path):
+    spec=fixture_model(tmp_path/"fixture.onnx")
+    assert spec.architecture=="ultralytics_yolo"
+    yolox=spec.model_copy(update={"architecture":"yolox"})
+    assert yolox.architecture=="yolox"
+
+
+def test_pinned_yolox_fetch_verifies_sha_and_writes_spec(tmp_path):
+    payload=b"official-model-fixture"
+    digest=hashlib.sha256(payload).hexdigest()
+    class Response:
+        headers={"Content-Length":str(len(payload))}
+        def __enter__(self): return self
+        def __exit__(self,*_): return False
+        def read(self,size=-1):
+            if getattr(self,"done",False): return b""
+            self.done=True
+            return payload
+    output=tmp_path/"yolox_s.onnx"
+    spec=fetch_yolox_s(output,opener=lambda *_args,**_kwargs:Response(),expected_sha256=digest)
+    assert output.read_bytes()==payload
+    assert spec.filename=="yolox_s.onnx"
+    assert spec.sha256==digest
+    assert spec.architecture=="yolox"
+    assert spec.purpose=="validation_only"
+    assert "Apache-2.0" in spec.license_ref
+    assert YOLOX_S_SHA256=="c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063"
+
+    output.unlink()
+    with pytest.raises(ValueError,match="hash"):
+        fetch_yolox_s(output,opener=lambda *_args,**_kwargs:Response(),expected_sha256="0"*64)
+    assert not output.exists()

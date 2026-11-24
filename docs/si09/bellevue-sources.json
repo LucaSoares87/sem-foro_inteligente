@@ -3,13 +3,33 @@
   "source_repository": "https://github.com/City-of-Bellevue/TrafficVideoDataset",
   "research_use_statement": "Official README states the dataset is made available for research purposes.",
   "commercial_demo_authorized": false,
-  "current_benchmark_state": "BLOCKED_BY_VIDEO_AND_MODEL_BYTES",
+  "current_benchmark_state": "MODEL_ADAPTER_IN_VALIDATION",
   "intersections": [
-    {"intersection_code":"BELLEVUE_150TH_EASTGATE","official_name":"Bellevue_150th_Eastgate","drive_folder":"https://drive.google.com/drive/folders/1cR1VwoAvEjFLRaUzeYph-bxx4LoM6pOH?usp=sharing"},
-    {"intersection_code":"BELLEVUE_150TH_NEWPORT","official_name":"Bellevue_150th_Newport","drive_folder":"https://drive.google.com/drive/folders/1irB6XKu2iM3BSJ2AEYH4kJl9nfG9j-yy?usp=sharing"},
-    {"intersection_code":"BELLEVUE_150TH_SE38TH","official_name":"Bellevue_150th_SE38th","drive_folder":"https://drive.google.com/drive/folders/1IN6kwywddO3B3uHyC5S18vqf0KEWToJ_?usp=sharing"},
-    {"intersection_code":"BELLEVUE_BELLEVUE_NE8TH","official_name":"Bellevue_Bellevue_NE8th","drive_folder":"https://drive.google.com/drive/folders/17bn7l7Qm5s-r5DYoFQPhviFZ0jWY9qk5?usp=sharing"},
-    {"intersection_code":"BELLEVUE_116TH_NE12TH","official_name":"Bellevue_116th_NE12th","drive_folder":"https://drive.google.com/drive/folders/16coOR8PlNzvmUm1vsaYJVF_bAOQGySa8?usp=sharing"}
+    {
+      "intersection_code": "BELLEVUE_150TH_EASTGATE",
+      "official_name": "Bellevue_150th_Eastgate",
+      "drive_folder": "https://drive.google.com/drive/folders/1cR1VwoAvEjFLRaUzeYph-bxx4LoM6pOH?usp=sharing"
+    },
+    {
+      "intersection_code": "BELLEVUE_150TH_NEWPORT",
+      "official_name": "Bellevue_150th_Newport",
+      "drive_folder": "https://drive.google.com/drive/folders/1irB6XKu2iM3BSJ2AEYH4kJl9nfG9j-yy?usp=sharing"
+    },
+    {
+      "intersection_code": "BELLEVUE_150TH_SE38TH",
+      "official_name": "Bellevue_150th_SE38th",
+      "drive_folder": "https://drive.google.com/drive/folders/1IN6kwywddO3B3uHyC5S18vqf0KEWToJ_?usp=sharing"
+    },
+    {
+      "intersection_code": "BELLEVUE_BELLEVUE_NE8TH",
+      "official_name": "Bellevue_Bellevue_NE8th",
+      "drive_folder": "https://drive.google.com/drive/folders/17bn7l7Qm5s-r5DYoFQPhviFZ0jWY9qk5?usp=sharing"
+    },
+    {
+      "intersection_code": "BELLEVUE_116TH_NE12TH",
+      "official_name": "Bellevue_116th_NE12th",
+      "drive_folder": "https://drive.google.com/drive/folders/16coOR8PlNzvmUm1vsaYJVF_bAOQGySa8?usp=sharing"
+    }
   ],
   "known_large_mirror": {
     "project": "I-ESC/Project-AVA AVA-100",
@@ -26,6 +46,36 @@
       "artifact_seen": "lstm_dataset.csv",
       "ingested": false,
       "reason": "No repository LICENSE found; derived data is not treated as ground truth or vendored dependency."
+    }
+  ],
+  "selected_replay_evidence": [
+    {
+      "filename": "Bellevue_116th_NE12th__2017-09-11_17-08-39.mp4",
+      "size_bytes": 60807417,
+      "width": 1280,
+      "height": 720,
+      "effective_fps": 17.3896015433877,
+      "duration_seconds": 426.57676666666663,
+      "sha256": "5202bf50e0c196131028fb53df74591f5dabbd062667197356037681742d4f1d",
+      "role": "secondary_real_replay_not_30fps_baseline"
+    },
+    {
+      "filename": "Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4",
+      "size_bytes": 68412272,
+      "width": 1280,
+      "height": 720,
+      "effective_fps": 28.94183693253734,
+      "duration_seconds": 408.54352222222224,
+      "role": "near_30_reference_candidate_not_labeled_30"
+    },
+    {
+      "filename": "Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4",
+      "size_bytes": 24816722,
+      "width": 1280,
+      "height": 720,
+      "effective_fps": 30.017720454840344,
+      "duration_seconds": 108.66914444444444,
+      "role": "30fps_short_sanity_only"
     }
   ]
 }

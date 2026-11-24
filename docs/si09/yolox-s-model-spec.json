@@ -1,0 +1,10 @@
+{
+  "filename": "yolox_s.onnx",
+  "sha256": "c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063",
+  "provenance": "Megvii-BaseDetection/YOLOX release 0.1.1rc0 official yolox_s.onnx",
+  "license_ref": "Apache-2.0 https://github.com/Megvii-BaseDetection/YOLOX/blob/main/LICENSE",
+  "purpose": "validation_only",
+  "architecture": "yolox",
+  "confidence": 0.25,
+  "nms_iou": 0.45
+}

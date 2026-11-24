@@ -28,4 +28,4 @@ Bellevue entra somente como `external_real_replay`. O dataset pode acelerar dese
 
 
 ### Bellevue FPS sweep
-A infraestrutura de replay 30/15/10/5 FPS está pronta em branch experimental para reutilizar o pipeline SI-09 e comparar fila, chegada/descarga, contagem, X e preferência contra 30 FPS. A execução real permanece `BLOCKED_BY_VIDEO_AND_MODEL_BYTES`: o vídeo oficial não está versionado no GitHub e os espelhos localizados são grandes; a main também não contém pesos ONNX autorizados. Nenhum resultado numérico Bellevue será fabricado.
+O acesso direto ao Drive público oficial de Bellevue foi validado e amostras reais foram inspecionadas. A taxa efetiva varia por arquivo; por isso `30/15/10/5` continua sendo um protocolo estrito e não um rótulo nominal. O YOLOX-S oficial, Apache-2.0, foi selecionado com adapter isolado e aquisição pinada por SHA-256. O benchmark real só começa após o adapter e o ONNX oficial passarem os gates do CI; nenhum resultado Bellevue será fabricado.
