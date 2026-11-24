@@ -110,9 +110,17 @@ def test_queue_estimator_observes_wait_arrival_discharge_and_quality():
     assert a.queue_length==1
     assert a.mean_wait_seconds==pytest.approx(1.2)
     assert a.arrival_rate_vps>0
-    # Track 3 crosses LA left -> right, incrementing the configured discharge direction.
-    run_pair(traffic,queue,batch(4,[track(1,.2),track(2,.6),track(3,.6)],3))
-    crossed=run_pair(traffic,queue,batch(5,[track(1,.2),track(2,.6),track(3,.82)],4))
+    # TrafficEngine line crossing is validated separately in test_analytics.py.
+    # Here the queue estimator receives the already-validated cumulative line metric
+    # so this test isolates conversion of a line-count delta into discharge rate.
+    b4=batch(4,[track(1,.2),track(2,.6)],3)
+    analytics4=traffic.consume(b4)
+    queue.consume(b4,analytics4,source_spec())
+    b5=batch(5,[track(1,.2),track(2,.6)],4)
+    analytics5=traffic.consume(b5)
+    line=analytics5.lines[0].model_copy(update={"positive_to_negative":analytics5.lines[0].positive_to_negative+1})
+    analytics5=analytics5.model_copy(update={"lines":(line,)})
+    crossed=queue.consume(b5,analytics5,source_spec())
     a=next(item for item in crossed.approaches if item.approach_id=="A")
     assert a.discharge_rate_vps>0
     assert a.observation_confidence>.65
