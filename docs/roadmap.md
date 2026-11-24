@@ -14,3 +14,7 @@ Reconstrução operacional proposta a partir das decisões já discutidas. A esp
 | SI-08B | Homologação de campo: modelo/câmera reais autorizados, calibração, ground truth, hardware-alvo e aceite humano | evidência de campo, métricas por classe, recuperação e autorização humana |
 
 O avanço depende de evidência registrada, não de pontuações estimadas. Sem controle físico em todas as missões.
+
+
+## Estado da SI-08B
+O framework integrado de homologação, avaliação, benchmark, recovery e aceite está implementado. O gate final permanece `blocked_by_field_evidence` até existirem modelo candidato autorizado, câmera física autorizada, calibração, ground truth real, benchmark no hardware-alvo, recovery no hardware-alvo e aceite humano. Os vídeos sintéticos de demonstração serão incorporados posteriormente ao mesmo contrato, sem substituir os gates de campo.
