@@ -61,7 +61,7 @@ def load_evidence(raw):
 class DatasetManifest(Contract):
     schema_version: Literal[1]=1
     dataset_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{2,80}$")
-    origin: Literal["synthetic","field"]
+    origin: Literal["synthetic","field","external_real_replay"]
     source_id: str = Field(pattern=r"^[A-Za-z0-9_-]{2,80}$")
     intersection_code: str = Field(pattern=r"^[A-Z0-9_-]{2,80}$")
     video_filename: str = Field(min_length=1,max_length=160)
@@ -69,6 +69,7 @@ class DatasetManifest(Contract):
     provenance: str = Field(min_length=2,max_length=240)
     license_ref: str = Field(min_length=2,max_length=240)
     authorization_ref: str = Field(min_length=2,max_length=240)
+    commercial_demo_authorized: bool = False
     recorded_at: AwareDatetime
     fps: float = Field(gt=0,le=30)
     width: int = Field(ge=64,le=MAX_WIDTH)
@@ -215,6 +216,9 @@ class EvaluationRequest(Contract):
                 raise ValueError("field dataset requires field acceptance thresholds")
             if self.thresholds.approved_at>self.manifest.recorded_at:
                 raise ValueError("field thresholds must be approved before capture")
+        elif self.manifest.origin=="external_real_replay":
+            if self.thresholds.purpose!="engineering_test":
+                raise ValueError("external replay requires engineering test thresholds")
         elif self.thresholds.purpose=="field_acceptance":
             raise ValueError("field acceptance thresholds cannot be applied to synthetic dataset")
         return self
@@ -231,7 +235,7 @@ class ClassMetric(Contract):
 class EvaluationResult(Contract):
     schema_version: Literal[1]=1
     dataset_id: str
-    origin: Literal["synthetic","field"]
+    origin: Literal["synthetic","field","external_real_replay"]
     input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     ground_truth_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
