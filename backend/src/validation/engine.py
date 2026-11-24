@@ -21,44 +21,54 @@ def iou(a,b):
 def _safe_ratio(a,b,empty=0.0):
     return a/b if b else empty
 
+def _match(gt,preds,threshold):
+    unmatched=set(range(len(gt)))
+    matches=[]
+    false_positive=0
+    for pred in sorted(preds,key=lambda item:item.confidence,reverse=True):
+        candidates=[(iou(pred.xyxy,gt[index].xyxy),index) for index in unmatched]
+        score,index=max(candidates,default=(0.0,None))
+        if index is not None and score>=threshold:
+            unmatched.remove(index)
+            matches.append((gt[index],pred))
+        else:
+            false_positive+=1
+    return matches,false_positive,len(unmatched)
+
 def evaluate(request):
     gt_by=defaultdict(list)
-    pred_by=defaultdict(list)
+    detection_by=defaultdict(list)
+    track_by=defaultdict(list)
     labels=set()
     for obj in request.ground_truth.annotations:
         gt_by[(obj.frame_sequence,obj.label)].append(obj)
         labels.add(obj.label)
-    for obj in request.predictions.annotations:
-        pred_by[(obj.frame_sequence,obj.label)].append(obj)
+    for obj in request.predictions.detections:
+        detection_by[(obj.frame_sequence,obj.label)].append(obj)
         labels.add(obj.label)
+    for obj in request.predictions.tracks:
+        track_by[(obj.frame_sequence,obj.label)].append(obj)
 
     totals={label:{"tp":0,"fp":0,"fn":0} for label in labels}
+    for key in sorted(set(gt_by)|set(detection_by),key=lambda item:(item[0],item[1])):
+        _,label=key
+        matches,fp,fn=_match(gt_by[key],detection_by[key],request.iou_threshold)
+        totals[label]["tp"]+=len(matches)
+        totals[label]["fp"]+=fp
+        totals[label]["fn"]+=fn
+
     last_track={}
     identity_switches=0
     matched_with_track=0
     total_gt=len(request.ground_truth.annotations)
-
-    for key in sorted(set(gt_by)|set(pred_by),key=lambda item:(item[0],item[1])):
-        frame,label=key
-        gt=gt_by[key]
-        preds=sorted(pred_by[key],key=lambda item:item.confidence,reverse=True)
-        unmatched=set(range(len(gt)))
-        for pred in preds:
-            candidates=[(iou(pred.xyxy,gt[index].xyxy),index) for index in unmatched]
-            score,index=max(candidates,default=(0.0,None))
-            if index is not None and score>=request.iou_threshold:
-                unmatched.remove(index)
-                totals[label]["tp"]+=1
-                truth=gt[index]
-                if pred.track_id is not None:
-                    matched_with_track+=1
-                    previous=last_track.get(truth.object_id)
-                    if previous is not None and previous!=pred.track_id:
-                        identity_switches+=1
-                    last_track[truth.object_id]=pred.track_id
-            else:
-                totals[label]["fp"]+=1
-        totals[label]["fn"]+=len(unmatched)
+    for key in sorted(set(gt_by)|set(track_by),key=lambda item:(item[0],item[1])):
+        matches,_,_=_match(gt_by[key],track_by[key],request.iou_threshold)
+        matched_with_track+=len(matches)
+        for truth,pred in matches:
+            previous=last_track.get(truth.object_id)
+            if previous is not None and previous!=pred.track_id:
+                identity_switches+=1
+            last_track[truth.object_id]=pred.track_id
 
     class_metrics=[]
     for label in sorted(labels):
@@ -76,10 +86,7 @@ def evaluate(request):
     count_mae=sum(errors)/len(errors) if errors else 0.0
     truth_total=sum(truth_counts.values())
     absolute_error=sum(errors)
-    if truth_total==0:
-        count_accuracy=1.0 if absolute_error==0 else 0.0
-    else:
-        count_accuracy=max(0.0,1-absolute_error/truth_total)
+    count_accuracy=(1.0 if absolute_error==0 else 0.0) if truth_total==0 else max(0.0,1-absolute_error/truth_total)
 
     tracking_recall=_safe_ratio(matched_with_track,total_gt,1.0 if total_gt==0 else 0.0)
     switch_rate=_safe_ratio(identity_switches,matched_with_track,0.0)
@@ -88,10 +95,9 @@ def evaluate(request):
             and switch_rate<=t.max_identity_switch_rate and count_accuracy>=t.count_accuracy)
 
     input_dump=request.model_dump(mode="json")
-    input_sha=_sha(input_dump)
     body={
         "schema_version":1,"dataset_id":request.manifest.dataset_id,"origin":request.manifest.origin,
-        "input_sha256":input_sha,
+        "input_sha256":_sha(input_dump),
         "manifest_sha256":_sha(request.manifest.model_dump(mode="json")),
         "ground_truth_sha256":_sha(request.ground_truth.model_dump(mode="json")),
         "predictions_sha256":_sha(request.predictions.model_dump(mode="json")),

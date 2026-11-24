@@ -16,10 +16,6 @@ PILOT_REQUIRED={
     "authorized_model","physical_camera","calibration","field_ground_truth",
     "hardware_benchmark","recovery_drill","human_acceptance"
 }
-FIELD_ONLY={
-    "authorized_model","physical_camera","calibration","field_ground_truth",
-    "hardware_benchmark","human_acceptance"
-}
 
 class EvidenceRecord(Contract):
     gate: GateId
@@ -99,12 +95,25 @@ class GroundTruthObject(Contract):
             raise ValueError("invalid normalized box")
         return self
 
-class PredictedObject(Contract):
+class PredictedDetection(Contract):
     frame_sequence: int = Field(ge=1)
     label: VehicleClass
     confidence: float = Field(ge=0,le=1)
     xyxy: tuple[float,float,float,float]
-    track_id: int | None = Field(default=None,ge=1)
+
+    @model_validator(mode="after")
+    def valid_box(self):
+        x1,y1,x2,y2=self.xyxy
+        if not 0<=x1<x2<=1 or not 0<=y1<y2<=1:
+            raise ValueError("invalid normalized box")
+        return self
+
+class PredictedTrack(Contract):
+    frame_sequence: int = Field(ge=1)
+    track_id: int = Field(ge=1)
+    label: VehicleClass
+    confidence: float = Field(ge=0,le=1)
+    xyxy: tuple[float,float,float,float]
 
     @model_validator(mode="after")
     def valid_box(self):
@@ -128,11 +137,15 @@ class GroundTruth(Contract):
     @model_validator(mode="after")
     def unique_entries(self):
         seen=set()
+        labels={}
         for item in self.annotations:
             key=(item.frame_sequence,item.object_id)
             if key in seen:
                 raise ValueError("duplicate ground truth object in frame")
             seen.add(key)
+            previous=labels.setdefault(item.object_id,item.label)
+            if previous!=item.label:
+                raise ValueError("ground truth object changes class")
         keys=[(x.line_id,x.direction,x.label) for x in self.counts]
         if len(keys)!=len(set(keys)):
             raise ValueError("duplicate ground truth count key")
@@ -141,19 +154,25 @@ class GroundTruth(Contract):
 class Predictions(Contract):
     schema_version: Literal[1]=1
     dataset_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{2,80}$")
-    annotations: tuple[PredictedObject,...] = Field(max_length=200000)
+    runner: Literal["si08b_offline_runner_v1"]="si08b_offline_runner_v1"
+    model_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    geometry_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    detections: tuple[PredictedDetection,...] = Field(max_length=200000)
+    tracks: tuple[PredictedTrack,...] = Field(default=(),max_length=200000)
     counts: tuple[CountValue,...] = Field(default=(),max_length=5000)
 
     @model_validator(mode="after")
     def unique_entries(self):
         per_frame_tracks=set()
-        for item in self.annotations:
-            if item.track_id is None:
-                continue
+        labels={}
+        for item in self.tracks:
             key=(item.frame_sequence,item.track_id)
             if key in per_frame_tracks:
                 raise ValueError("duplicate predicted track in frame")
             per_frame_tracks.add(key)
+            previous=labels.setdefault(item.track_id,item.label)
+            if previous!=item.label:
+                raise ValueError("predicted track changes class")
         keys=[(x.line_id,x.direction,x.label) for x in self.counts]
         if len(keys)!=len(set(keys)):
             raise ValueError("duplicate predicted count key")
@@ -176,11 +195,11 @@ class EvaluationRequest(Contract):
     iou_threshold: float = Field(default=.5,ge=.1,le=.9)
 
     @model_validator(mode="after")
-    def same_dataset(self):
+    def consistent_artifacts(self):
         if self.ground_truth.dataset_id!=self.manifest.dataset_id or self.predictions.dataset_id!=self.manifest.dataset_id:
             raise ValueError("dataset id mismatch")
         allowed=set(self.manifest.classes)
-        for item in (*self.ground_truth.annotations,*self.predictions.annotations):
+        for item in (*self.ground_truth.annotations,*self.predictions.detections,*self.predictions.tracks):
             if item.frame_sequence>self.manifest.frame_count:
                 raise ValueError("annotation beyond manifest frame count")
             if item.label not in allowed:
