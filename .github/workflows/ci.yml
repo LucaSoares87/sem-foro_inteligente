@@ -39,12 +39,13 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
       - run: python -m compileall -q src tests
       - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pip check
       - run: python -m pytest -q --cov=src.pipeline --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_tracking.py --cov=src.tracking.tracker --cov=src.tracking.association --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_analytics.py --cov=src.analytics.engine --cov=src.analytics.geometry --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_predictive.py --cov=src.predictive.aggregation --cov=src.predictive.forecast --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_decision.py --cov=src.decision.engine --cov=src.decision.service --cov-report=term-missing --cov-fail-under=90
-      - run: python -m pytest -q tests/test_geography.py tests/test_history_view.py
+      - run: python -m pytest -q tests/test_geography.py tests/test_history_view.py tests/test_operations.py
       - run: alembic upgrade head && alembic check
       - run: alembic downgrade base && alembic upgrade head
       - run: ARCHIVE_POSTGRES_TEST=1 python -m pytest -q tests/test_archive_postgres.py tests/test_history_postgres.py
@@ -79,8 +80,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
+      - run: sh -n ops/backup.sh && sh -n ops/restore.sh
+      - run: python3 -m py_compile ops/smoke_load.py
       - run: docker compose up --build --wait --wait-timeout 180
       - run: docker compose exec -T backend python -c 'import cv2; import numpy; print(cv2.__version__)'
+      - run: test "$(docker compose exec -T backend id -u | tr -d '\r')" != "0"
+      - run: test "$(docker compose exec -T frontend id -u | tr -d '\r')" != "0"
       - run: |
           curl --fail --retry 5 http://127.0.0.1:5173/
           curl --fail http://127.0.0.1:5173/executivo
@@ -90,6 +95,17 @@ jobs:
           curl --fail http://127.0.0.1:5173/apresentacao
           curl --fail http://127.0.0.1:5173/api/v1/health
           curl --fail http://127.0.0.1:5173/api/v1/intersections
+          curl --fail http://127.0.0.1:5173/api/v1/operations/status
+          curl --fail http://127.0.0.1:5173/api/v1/operations/metrics
+          curl -fsSI http://127.0.0.1:5173/executivo | grep -qi '^Content-Security-Policy:'
+          curl -fsSI http://127.0.0.1:5173/executivo | grep -qi '^Permissions-Policy:'
+          python3 ops/smoke_load.py --url http://127.0.0.1:5173/api/v1/health --requests 80 --concurrency 8 --p95-ms 5000
+          mkdir -p .ci-backups
+          ./ops/backup.sh "$PWD/.ci-backups/ci.dump"
+          ./ops/restore.sh "$PWD/.ci-backups/ci.dump" traffic_restore_ci
+          test "$(docker compose exec -T -e TARGET_DB=traffic_restore_ci postgres sh -ceu 'psql -U "$POSTGRES_USER" -d "$TARGET_DB" -Atqc "SELECT version_num FROM alembic_version"')" = "0005_operational_hardening"
+          docker compose exec -T -e TARGET_DB=traffic_restore_ci postgres sh -ceu 'dropdb -U "$POSTGRES_USER" "$TARGET_DB"'
+          rm -rf .ci-backups
           python -m pip install websockets==15.0.1
           python - <<'PY'
           import json
