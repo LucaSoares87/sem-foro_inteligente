@@ -1,5 +1,6 @@
 import React, {useMemo} from 'react'
 import ForecastPanel from '../ForecastPanel.jsx'
+import HistoryPanel from '../components/HistoryPanel.jsx'
 import { operationalRows } from '../app/geography.js'
 import { displayStatus } from '../health.js'
 import { DataTable, EmptyState, Panel, SectionHeading, StatusPill } from '../components/ui.jsx'
@@ -71,6 +72,8 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
         { key:'latency', label:'Latência local', render: row => Number.isFinite(row.decode_to_receive_ms)?row.decode_to_receive_ms.toFixed(1)+' ms':'—' }
       ]} /> : <EmptyState title="Nenhuma fonte neste cruzamento" description="O cadastro geográfico pode existir sem câmera associada; o painel não inventa telemetria." />}
     </Panel>
+
+    <HistoryPanel intersection={selected} enabled={data?.predictive?.state !== 'disabled'} />
 
     <div className="grid gap-6 xl:grid-cols-2">
       <Panel>
