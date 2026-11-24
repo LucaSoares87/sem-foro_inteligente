@@ -137,6 +137,7 @@ class VisionService:
                     "inferred_at":batch.inferred_at.isoformat()})
         return {"state":self.state,"backend":"opencv_dnn_cpu","configured":self.spec is not None,
                 "purpose":self.spec.purpose if self.spec else None,
+                "architecture":self.spec.architecture if self.spec else None,
                 "model_sha256":self.spec.sha256 if self.spec else None,
                 "processed":self.processed,"discarded":self.discarded,"error_code":self.error,
                 "sources":sources,"tracking_connected":self.tracking is not None and self.state=="ready","decision_mode":"abstention_only"}

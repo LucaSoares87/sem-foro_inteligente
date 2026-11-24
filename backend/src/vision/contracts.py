@@ -15,6 +15,7 @@ class ModelSpec(BaseModel):
     provenance: str = Field(min_length=1,max_length=160)
     license_ref: str = Field(min_length=1,max_length=160)
     purpose: Literal["validation_only","authorized_candidate"] = "validation_only"
+    architecture: Literal["ultralytics_yolo","yolox"] = "ultralytics_yolo"
     confidence: float = Field(default=.25,ge=.05,le=.95)
     nms_iou: float = Field(default=.45,ge=.1,le=.9)
 
