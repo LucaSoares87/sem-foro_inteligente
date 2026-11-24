@@ -241,7 +241,7 @@ def test_offline_runner_reuses_detector_tracker_and_traffic_engine(tmp_path):
             if self.index>=len(frames): return False,None
             frame=frames[self.index]; self.index+=1; return True,frame
         def release(self): pass
-    positions=[(.2,.3),(.25,.35),(.65,.75)]
+    positions=[(.34,.50),(.38,.54),(.46,.62)]
     class Worker:
         def __init__(self,*_): self.index=0
         async def open(self): pass
