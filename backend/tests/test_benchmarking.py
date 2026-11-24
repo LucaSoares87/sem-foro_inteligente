@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from src.analytics.contracts import CountingLine,QueueApproachConfig,Region,SourceGeometry
+from src.benchmarking.bellevue import prepare_bellevue_manifest
 from src.benchmarking.contracts import FpsBenchmarkCriteria
 from src.benchmarking.runner import _should_sample,run_fps_sweep
 from src.validation.contracts import DatasetManifest,EvaluationRequest,EvaluationThresholds,GroundTruth,Predictions
@@ -111,3 +112,38 @@ def test_external_replay_cannot_be_evaluated_as_field_acceptance():
     with pytest.raises(ValueError,match="external replay"):
         EvaluationRequest(manifest=external,ground_truth=truth,predictions=predictions,
                           thresholds=thresholds)
+
+
+def test_prepare_bellevue_manifest_binds_sha_provenance_and_capture_time(tmp_path):
+    path=tmp_path/"Bellevue_116th_NE12th__2017-09-11_09-08-31.mp4"
+    path.write_bytes(b"fixture")
+    info={"filename":path.name,"sha256":"d"*64,"width":1280,"height":720,
+          "fps":30.0,"frame_count":300,"duration_seconds":10.0,"decoder":"opencv"}
+    result=prepare_bellevue_manifest(path,"bellevue-case","BELLEVUE_116TH_NE12TH",
+        "BELLEVUE_116TH_NE12TH",inspect=lambda _path:info)
+    assert result.origin=="external_real_replay"
+    assert result.video_sha256=="d"*64
+    assert result.recorded_at.isoformat()=="2017-09-11T09:08:31-07:00"
+    assert result.commercial_demo_authorized is False
+    assert "research" in result.authorization_ref.lower()
+    assert set(result.classes)=={"bicycle","car","motorcycle","bus","truck"}
+
+def test_prepare_bellevue_manifest_requires_explicit_time_for_renamed_clip(tmp_path):
+    path=tmp_path/"clip.mp4"
+    path.write_bytes(b"fixture")
+    info={"filename":path.name,"sha256":"e"*64,"width":1280,"height":720,
+          "fps":30.0,"frame_count":300,"duration_seconds":10.0,"decoder":"opencv"}
+    with pytest.raises(ValueError,match="recorded-at required"):
+        prepare_bellevue_manifest(path,"bellevue-case","BELLEVUE_TEST","BELLEVUE_TEST",
+                                  inspect=lambda _path:info)
+    result=prepare_bellevue_manifest(path,"bellevue-case","BELLEVUE_TEST","BELLEVUE_TEST",
+        recorded_at="2017-09-11T09:10:00-07:00",inspect=lambda _path:info)
+    assert result.recorded_at.isoformat()=="2017-09-11T09:10:00-07:00"
+
+def test_benchmark_criteria_reject_duplicate_or_unordered_fps():
+    with pytest.raises(ValueError):
+        FpsBenchmarkCriteria(approval_reference="test",approved_at=NOW,
+                             target_fps=(30,15,15,5))
+    with pytest.raises(ValueError):
+        FpsBenchmarkCriteria(approval_reference="test",approved_at=NOW,
+                             target_fps=(30,10,15,5))

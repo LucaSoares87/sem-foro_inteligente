@@ -1,9 +1,11 @@
 # Bellevue FPS benchmark — execução e estado
 
 ## Estado atual
-`BLOCKED_BY_VIDEO_BYTES`.
+`BLOCKED_BY_VIDEO_AND_MODEL_BYTES`.
 
-A infraestrutura de benchmark está implementada, mas nenhum resultado 30/15/10/5 é registrado como Bellevue enquanto um clipe real não estiver disponível localmente. O repositório oficial referencia pastas do Google Drive; não há MP4 pequeno versionado no GitHub oficial. Um espelho acadêmico AVA-100 foi localizado, porém o arquivo de tráfego observado tem aproximadamente 2,62 GB. Baixar esse volume para obter poucos minutos não é uma estratégia de custo aceitável para o primeiro ensaio.
+A infraestrutura de benchmark está implementada, mas nenhum resultado 30/15/10/5 é registrado como Bellevue enquanto um clipe real e um modelo ONNX autorizado/compatível não estiverem disponíveis localmente. O repositório oficial referencia pastas do Google Drive; não há MP4 pequeno versionado no GitHub oficial. Um espelho acadêmico AVA-100 foi localizado, porém o arquivo de tráfego observado tem aproximadamente 2,62 GB. Baixar esse volume para obter poucos minutos não é uma estratégia de custo aceitável para o primeiro ensaio.
+
+A main também não versiona pesos de visão. O worker atual exige ONNX compatível com a saída YOLO `[1,84,N]` e hash registrado no ModelSpec. Não será usado um `.pt` acadêmico sem licença nem será trocada a família do detector apenas para tornar o benchmark executável.
 
 Dados derivados encontrados em repositórios acadêmicos não são importados quando a licença não está clara e nunca substituem vídeo + ground truth.
 

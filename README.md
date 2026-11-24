@@ -107,3 +107,7 @@ APIs:
 - `/api/v1/optimization/sources/{source}/history`.
 
 Consulte `docs/si09/` para o modelo matemático, protocolo Bellevue e limites de interpretação.
+
+
+### Benchmark Bellevue 30/15/10/5 FPS
+A CLI possui `prepare-bellevue` e `fps-sweep` para replay externo com proveniência e comparação de estabilidade do SI-09. O benchmark real exige um clipe Bellevue local e um ONNX compatível/autorizado; nenhum dos dois é incorporado automaticamente ao repositório. Veja `docs/si09/bellevue-fps-benchmark.md`.

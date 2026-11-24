@@ -3,7 +3,7 @@
   "source_repository": "https://github.com/City-of-Bellevue/TrafficVideoDataset",
   "research_use_statement": "Official README states the dataset is made available for research purposes.",
   "commercial_demo_authorized": false,
-  "current_benchmark_state": "BLOCKED_BY_VIDEO_BYTES",
+  "current_benchmark_state": "BLOCKED_BY_VIDEO_AND_MODEL_BYTES",
   "intersections": [
     {"intersection_code":"BELLEVUE_150TH_EASTGATE","official_name":"Bellevue_150th_Eastgate","drive_folder":"https://drive.google.com/drive/folders/1cR1VwoAvEjFLRaUzeYph-bxx4LoM6pOH?usp=sharing"},
     {"intersection_code":"BELLEVUE_150TH_NEWPORT","official_name":"Bellevue_150th_Newport","drive_folder":"https://drive.google.com/drive/folders/1irB6XKu2iM3BSJ2AEYH4kJl9nfG9j-yy?usp=sharing"},
