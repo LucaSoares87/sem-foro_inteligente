@@ -1,0 +1,70 @@
+name: SI-09D research replay
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/si09d_preflight.py'
+      - 'backend/tests/test_si09d_preflight.py'
+      - 'docs/si09/bellevue-preliminary-geometry.json'
+      - '.github/workflows/si09d-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preliminary-replay:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing research runtime
+        run: python -m pip install -r requirements-dev.txt gdown==5.2.0
+      - name: Check timestamp preflight regression
+        run: python -m pytest -q tests/test_si09d_preflight.py tests/test_benchmarking.py
+      - name: Acquire public research source and pinned model
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si09d-private /tmp/si09d-model /tmp/si09d-results
+          gdown 'https://drive.google.com/uc?id=1c3lvwz7FfTnTEVyLaopPg6NjpJ2pAn7Q' -O /tmp/si09d-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4
+          python -m src.vision.model_artifacts --output /tmp/si09d-model/yolox_s.onnx --spec-output /tmp/si09d-model/model-spec.json
+      - name: Prepare earliest continuous 32-second lossless span
+        run: |
+          set -euo pipefail
+          python -m src.benchmarking.si09d_preflight --source /tmp/si09d-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4 --output /tmp/si09d-private/preliminary.mkv --evidence /tmp/si09d-results/preflight.json --seconds 32
+          recorded=$(python -c 'import json; print(json.load(open("/tmp/si09d-results/preflight.json"))["recorded_at"])')
+          python -m src.validation.cli prepare-bellevue --video /tmp/si09d-private/preliminary.mkv --dataset-id bellevue-si09d-preliminary-32s --source-id BELLEVUE_116TH_NE12TH --intersection-code BELLEVUE_116TH_NE12TH --recorded-at "$recorded" --output /tmp/si09d-results/manifest.json
+      - name: Execute unchanged pipeline at 30 15 10 5 FPS
+        run: |
+          set -euo pipefail
+          python -m src.validation.cli fps-sweep --manifest /tmp/si09d-results/manifest.json --video /tmp/si09d-private/preliminary.mkv --model-spec /tmp/si09d-model/model-spec.json --model-root /tmp/si09d-model --geometry ../docs/si09/bellevue-preliminary-geometry.json --criteria ../docs/si09/bellevue-benchmark-criteria-v1.json --output /tmp/si09d-results/benchmark.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/si09d-results")
+          report=json.loads((root/"benchmark.json").read_text())
+          assert report["physical_actuation"] is False
+          assert report["operationally_validated"] is False
+          assert report["commercial_demo_authorized"] is False
+          assert all(s["preferred_in_simulation"]=="abstain" and s["dynamic_x_safe_vehicles"] is None for r in report["runs"] for s in r["seconds"])
+          result={"scope":"preliminary_observation_only","geometry_calibrated":False,"engineering_recommended_min_fps":None,"decision_validation":"BLOCKED_BY_GEOMETRY_CONFIDENCE","principal_5_to_15_minute_experiment":"NOT_RUN","note":"The v1 reference fallback is not an evidence-backed recommendation. No X or policy preference is validated.","operationally_validated":False,"physical_actuation":False}
+          (root/"interpretation.json").write_text(json.dumps(result,indent=2)+"\n")
+          PY
+      - name: Preserve aggregate-only research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si09d-preliminary-aggregate-evidence
+          path: |
+            /tmp/si09d-results/preflight.json
+            /tmp/si09d-results/manifest.json
+            /tmp/si09d-results/benchmark.json
+            /tmp/si09d-results/interpretation.json
+          if-no-files-found: ignore
+          retention-days: 3
