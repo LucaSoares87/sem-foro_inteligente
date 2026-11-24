@@ -28,6 +28,18 @@ class ValidationService:
             "physical_sources_running": sum(1 for session in physical if session.state=="running"),
         }
 
+    def health_status(self):
+        status=self.status()
+        return {
+            "state":status["state"],
+            "framework_ready":status["framework_ready"],
+            "pilot_ready":status["pilot_ready"],
+            "pilot_decision":status["pilot_decision"],
+            "missing_evidence_count":len(status["missing_evidence"]),
+            "physical_actuation":False,
+            "operational_decision":"abstain",
+        }
+
     def status(self):
         runtime=self._runtime()
         gates=[]

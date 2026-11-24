@@ -91,7 +91,12 @@ def evaluate(request):
     input_sha=_sha(input_dump)
     body={
         "schema_version":1,"dataset_id":request.manifest.dataset_id,"origin":request.manifest.origin,
-        "input_sha256":input_sha,"iou_threshold":request.iou_threshold,
+        "input_sha256":input_sha,
+        "manifest_sha256":_sha(request.manifest.model_dump(mode="json")),
+        "ground_truth_sha256":_sha(request.ground_truth.model_dump(mode="json")),
+        "predictions_sha256":_sha(request.predictions.model_dump(mode="json")),
+        "thresholds_sha256":_sha(request.thresholds.model_dump(mode="json")),
+        "iou_threshold":request.iou_threshold,
         "per_class":[item.model_dump(mode="json") for item in class_metrics],
         "detection_macro_f1":macro_f1,"tracking_match_recall":tracking_recall,
         "identity_switches":identity_switches,"identity_switch_rate":switch_rate,

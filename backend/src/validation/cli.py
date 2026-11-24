@@ -10,10 +10,13 @@ from src.validation.engine import evaluate
 from src.validation.io import canonical_json,load_json_model,verify_video
 
 def _write(path,value):
+    import hashlib
+    payload=dict(value)
+    payload["artifact_sha256"]=hashlib.sha256(canonical_json(payload).encode()).hexdigest()
     target=Path(path)
     target.parent.mkdir(parents=True,exist_ok=True)
     temp=target.with_name(target.name+".tmp")
-    temp.write_text(canonical_json(value),encoding="utf-8")
+    temp.write_text(canonical_json(payload),encoding="utf-8")
     os.chmod(temp,0o600)
     temp.replace(target)
 

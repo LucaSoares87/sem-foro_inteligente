@@ -104,9 +104,12 @@ def main():
         current=item.get("frames_received",0)
         previous=before.get("frames_received",0)
         video_delta[source]=max(0,current-previous) if isinstance(current,int) and isinstance(previous,int) else 0
-    validation=last.get("validation",{})
-    runtime=validation.get("runtime_observation",{})
-    workload_ok=bool(runtime.get("authorized_candidate_model_loaded") and runtime.get("physical_sources_running",0)>0)
+    vision=last.get("vision",{})
+    video_sources=last.get("video",{}).get("sources",[])
+    physical=[item for item in video_sources if item.get("kind") in {"webcam","rtsp"}]
+    candidate=bool(vision.get("configured") and vision.get("purpose")=="authorized_candidate")
+    running=sum(1 for item in physical if item.get("state")=="running")
+    workload_ok=bool(candidate and running>0)
     payload={
         "schema_version":1,
         "captured_at":datetime.now(timezone.utc).isoformat(),
@@ -126,9 +129,9 @@ def main():
             "latency_max_ms":round(max(latencies),2) if latencies else 0,
         },
         "workload_observation":{
-            "authorized_candidate_model_loaded":bool(runtime.get("authorized_candidate_model_loaded")),
-            "physical_sources_configured":runtime.get("physical_sources_configured",0),
-            "physical_sources_running":runtime.get("physical_sources_running",0),
+            "authorized_candidate_model_loaded":candidate,
+            "physical_sources_configured":len(physical),
+            "physical_sources_running":running,
             "vision_processed_delta":counter("vision"),
             "tracking_processed_delta":counter("tracking"),
             "analytics_processed_delta":counter("analytics"),

@@ -69,6 +69,8 @@ class DatasetManifest(Contract):
     video_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     provenance: str = Field(min_length=2,max_length=240)
     license_ref: str = Field(min_length=2,max_length=240)
+    authorization_ref: str = Field(min_length=2,max_length=240)
+    recorded_at: AwareDatetime
     fps: float = Field(gt=0,le=120)
     width: int = Field(ge=64,le=7680)
     height: int = Field(ge=64,le=4320)
@@ -158,6 +160,9 @@ class Predictions(Contract):
         return self
 
 class EvaluationThresholds(Contract):
+    purpose: Literal["engineering_test","synthetic_demo","field_acceptance"]
+    approval_reference: str = Field(min_length=2,max_length=240)
+    approved_at: AwareDatetime
     detection_macro_f1: float = Field(ge=0,le=1)
     tracking_match_recall: float = Field(ge=0,le=1)
     max_identity_switch_rate: float = Field(ge=0,le=1)
@@ -183,6 +188,13 @@ class EvaluationRequest(Contract):
         for item in (*self.ground_truth.counts,*self.predictions.counts):
             if item.label is not None and item.label not in allowed:
                 raise ValueError("count class outside manifest")
+        if self.manifest.origin=="field":
+            if self.thresholds.purpose!="field_acceptance":
+                raise ValueError("field dataset requires field acceptance thresholds")
+            if self.thresholds.approved_at>self.manifest.recorded_at:
+                raise ValueError("field thresholds must be approved before capture")
+        elif self.thresholds.purpose=="field_acceptance":
+            raise ValueError("field acceptance thresholds cannot be applied to synthetic dataset")
         return self
 
 class ClassMetric(Contract):
@@ -199,6 +211,10 @@ class EvaluationResult(Contract):
     dataset_id: str
     origin: Literal["synthetic","field"]
     input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    ground_truth_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    predictions_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    thresholds_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     result_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     iou_threshold: float
     per_class: tuple[ClassMetric,...]

@@ -169,7 +169,7 @@ def create_app(settings=None):
                 "audit_enabled": request.app.state.settings.audit_enabled,
                 "metrics": request.app.state.operations_metrics.snapshot()
             },
-            "validation": request.app.state.validation.status(),
+            "validation": request.app.state.validation.health_status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),
