@@ -118,15 +118,21 @@ def test_queue_estimator_observes_wait_arrival_discharge_and_quality():
     queue.consume(b4,analytics4,source_spec())
     b5=batch(5,[track(1,.2),track(2,.6)],4)
     analytics5=traffic.consume(b5)
-    line=analytics5.lines[0].model_copy(update={"positive_to_negative":analytics5.lines[0].positive_to_negative+1})
-    analytics5=analytics5.model_copy(update={"lines":(line,)})
+    analytics5=analytics5.model_copy(update={"lines":tuple(
+        item.model_copy(update={"positive_to_negative":item.positive_to_negative+1})
+        if item.line_id=="LA" else item for item in analytics5.lines)})
     crossed=queue.consume(b5,analytics5,source_spec())
     a=next(item for item in crossed.approaches if item.approach_id=="A")
     assert a.discharge_rate_vps>0
     assert a.observation_confidence>.65
     assert crossed.data_origin=="external_real_replay"
     assert crossed.physical_speed_available is False
-    limited=run_pair(traffic,queue,batch(6,[track(1,.2,state="tentative")],5,skipped=1,lost=1))
+    b6=batch(6,[track(1,.2,state="tentative")],5,skipped=1,lost=1)
+    analytics6=traffic.consume(b6)
+    analytics6=analytics6.model_copy(update={"lines":tuple(
+        item.model_copy(update={"positive_to_negative":item.positive_to_negative+1})
+        if item.line_id=="LA" else item for item in analytics6.lines)})
+    limited=queue.consume(b6,analytics6,source_spec())
     assert all(item.quality=="limited_sampling" for item in limited.approaches)
     assert all(item.observation_confidence<.65 for item in limited.approaches)
 
