@@ -27,7 +27,7 @@ export default function PresentationView({data,healthStatus,realtime,intersectio
     <Panel><GeoOverview rows={rows} onOpen={()=>{}}/></Panel>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
       <MetricCard label="Cruzamentos" value={formatMetric(intersections.length)} detail="Cadastro explícito"/>
-      <MetricCard label="Fontes" value={formatMetric(metrics.sources)} detail={formatMetric(metrics.activeSources)+' ativas'/>
+      <MetricCard label="Fontes" value={formatMetric(metrics.sources)} detail={formatMetric(metrics.activeSources)+' ativas'}/>
       <MetricCard label="Alertas" value={formatMetric(alerts.filter(a=>a.severity!=='info').length)} detail="Estados técnicos atuais"/>
     </div>
   </div>:step.id==='intersection'?<Panel>
