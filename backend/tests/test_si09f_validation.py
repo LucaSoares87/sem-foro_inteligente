@@ -3,6 +3,8 @@ from src.analytics.contracts import SourceGeometry
 from src.analytics.engine import TrafficEngine
 from src.archive.store import fingerprint
 from src.benchmarking.si09d_preflight import SOURCE_NAME, SOURCE_SHA, prepare
+from src.benchmarking.si09e_diagnostics import temporal_geometry
+from src.vision.model_artifacts import YOLOX_S_SHA256
 from src.benchmarking.si09f_validation import Annotation, Review, HOLDOUTS, expected_keys, gate
 
 CASE="morning_0708"
@@ -24,7 +26,10 @@ def inputs():
        "line_counts":[{"line_id":"l","negative_to_positive":0,"positive_to_negative":0}],
        "queue_by_second":{str(s):{"a":0} for s in range(32)}}
     report={"scope":"paired_diagnostic_not_accuracy","video_sha256":"a"*64,"unique_inferences":960,
-            "runs":[{"fps":fps,"frames":32*fps,"variants":{"baseline":v,"temporal_candidate":v}} for fps in (30,15,10,5)]}
+            "model_sha256":YOLOX_S_SHA256,"origin":"external_real_replay","candidate_promoted":False,
+            "commercial_demo_authorized":False,"operationally_validated":False,"physical_actuation":False,
+            "runs":[{"fps":fps,"frames":32*fps,"variants":{"baseline":v,
+                "temporal_candidate":{**v,"geometry_sha256":TrafficEngine(temporal_geometry(geo,fps)).geometry_hash}}} for fps in (30,15,10,5)]}
     report["result_sha256"]=fingerprint(report)
     labels={"counts":[{"line_id":l,"direction":d,"count":0} for l,d in sorted(c)],
             "queues":[{"second":s,"approach_id":a,"count":0} for s,a in sorted(q)],
