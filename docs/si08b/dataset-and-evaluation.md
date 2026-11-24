@@ -3,7 +3,7 @@
 ## Vídeos a serem produzidos depois
 Os vídeos sintéticos deverão usar o mesmo contrato dos vídeos de campo, mas com `origin: synthetic`. Isso permite testar o pipeline sem criar um segundo sistema de demonstração.
 
-Cada caso deve possuir, fora do repositório público quando o arquivo for grande ou sensível:
+Cada caso deve possuir, fora do repositório público quando o arquivo for grande ou sensível. Para manter paridade com o pipeline atual, use no máximo 1280×720 e 30 FPS:
 
 - vídeo autorizado;
 - `manifest.json`;
@@ -22,7 +22,20 @@ A ferramenta verifica nome, SHA-256, capacidade de abertura pelo OpenCV, resolu�
 Cada objeto contém frame, ID humano/verdadeiro, classe e bounding box normalizada. Contagens esperadas são vinculadas a linha, direção e opcionalmente classe. Duplicações incompatíveis são rejeitadas.
 
 ## Predições
-Cada objeto contém frame, classe, confiança, bounding box e track ID quando existente. A avaliação é class-aware e frame-aware.
+Não editar manualmente as predições para um ensaio de aceite. Gere-as com o runner offline, que reutiliza o mesmo worker YOLO, o mesmo ByteTrackInspired e o mesmo TrafficEngine do produto:
+
+```sh
+cd backend
+python -m src.validation.cli run-case \
+  --manifest manifest.json \
+  --video video.mp4 \
+  --model-spec model-spec.json \
+  --model-root /caminho/autorizado/modelos \
+  --geometry geometry.json \
+  --output predictions.json
+```
+
+`predictions.json` separa `detections` de `tracks`, registra SHA-256 do modelo e da geometria e contém as contagens finais por linha/sentido. O runner emite contagens agregadas (`label:null`); enquanto não houver contagem por classe no motor analítico, o ground truth de contagem usado para aceite também deve ser agregado.
 
 ## Métricas
 O avaliador calcula:

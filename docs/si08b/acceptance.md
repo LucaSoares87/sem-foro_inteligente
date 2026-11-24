@@ -21,6 +21,6 @@ O gate final SI-08B é deliberadamente composto. A plataforma só expõe `ready_
 - aprovação humana.
 
 ## Registro de evidência
-`VALIDATION_EVIDENCE_JSON` aceita no máximo um registro por gate. Um gate `ready` exige SHA-256 + timestamp; aceite humano exige referência, timestamp e `human_authorized:true`. Evidência com `origin:synthetic` não pode satisfazer gate obrigatório de piloto.
+`VALIDATION_EVIDENCE_JSON` aceita no máximo um registro por gate. Um gate `ready` exige SHA-256 do artefato, referência e timestamp; aceite humano também exige `human_authorized:true`. O gate `authorized_model` exige ainda `subject_sha256` com o SHA-256 do modelo aprovado e só permanece pronto se esse mesmo modelo candidato estiver carregado no runtime. O gate de câmera física só permanece pronto se houver webcam/RTSP configurada. Evidência com `origin:synthetic` não pode satisfazer gate obrigatório de piloto.
 
 O JSON é configuração operacional externa. Não embutir dados pessoais, segredos, vídeos ou credenciais nele.

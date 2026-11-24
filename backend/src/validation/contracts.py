@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import AwareDatetime, Field, model_validator
 from src.analytics.contracts import Contract
 from src.vision.contracts import VehicleClass
+from src.video.contracts import MAX_HEIGHT,MAX_WIDTH
 
 GateId=Literal[
     "synthetic_demo_dataset","authorized_model","physical_camera","calibration",
@@ -69,9 +70,9 @@ class DatasetManifest(Contract):
     license_ref: str = Field(min_length=2,max_length=240)
     authorization_ref: str = Field(min_length=2,max_length=240)
     recorded_at: AwareDatetime
-    fps: float = Field(gt=0,le=120)
-    width: int = Field(ge=64,le=7680)
-    height: int = Field(ge=64,le=4320)
+    fps: float = Field(gt=0,le=30)
+    width: int = Field(ge=64,le=MAX_WIDTH)
+    height: int = Field(ge=64,le=MAX_HEIGHT)
     frame_count: int = Field(ge=1)
     classes: tuple[VehicleClass,...] = Field(min_length=1,max_length=5)
 

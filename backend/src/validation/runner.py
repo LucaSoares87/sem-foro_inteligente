@@ -8,6 +8,7 @@ from src.validation.contracts import CountValue,PredictedDetection,PredictedTrac
 from src.validation.io import verify_video
 from src.vision.contracts import DetectionBatch
 from src.vision.service import InferenceWorker
+from src.video.contracts import MAX_JPEG
 
 async def run_case(manifest,video_path,spec,model_root,geometry,
                    worker_factory=InferenceWorker,capture_factory=cv2.VideoCapture,verify=verify_video):
@@ -40,6 +41,8 @@ async def run_case(manifest,video_path,spec,model_root,geometry,
             if not encoded:
                 raise ValueError("frame jpeg encoding failed")
             raw=jpeg.tobytes()
+            if not 0<len(raw)<=MAX_JPEG:
+                raise ValueError("encoded frame exceeds inference transport limit")
             result=await worker.infer(raw)
             received=manifest.recorded_at+timedelta(seconds=(sequence-1)/manifest.fps)
             batch=DetectionBatch(

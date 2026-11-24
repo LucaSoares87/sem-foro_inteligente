@@ -14,11 +14,11 @@
 2. Fixar câmera, resolução, FPS e relógio; não mover a câmera durante o caso de avaliação.
 3. Revisar ROI, linhas de contagem, sentidos e oclusões.
 4. Preencher o checklist de calibração e executar `python -m src.validation.cli calibration --input calibration.json`.
-5. Capturar o vídeo de avaliação sem publicar o arquivo no Git.
-6. Gerar manifesto e SHA-256.
+5. Capturar o vídeo de avaliação em até 1280×720 / 30 FPS sem publicar o arquivo no Git.
+6. Executar `python -m src.validation.cli inspect-video` e preencher manifesto + SHA-256.
 7. Produzir ground truth por anotação independente.
-8. Executar o sistema no vídeo/câmera usando o modelo candidato.
-9. Exportar predições no contrato SI-08B.
+8. Executar `python -m src.validation.cli run-case` com o modelo candidato e a geometria revisada.
+9. Preservar o `predictions.json` gerado; não editar para melhorar o resultado.
 10. Executar o avaliador offline com os thresholds previamente aprovados.
 11. Executar `ops/pilot_probe.py --require-workload` durante workload real.
 12. Executar recovery drill no hardware-alvo.
