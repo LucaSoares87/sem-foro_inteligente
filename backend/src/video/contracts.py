@@ -21,6 +21,9 @@ class SourceSpec(BaseModel):
     locator: SecretStr
     target_fps: int = Field(default=10, strict=True, ge=1, le=30)
     reconnect_attempts: int = Field(default=3, strict=True, ge=0, le=5)
+    data_origin: Literal["local_authorized","external_real_replay","synthetic_demo"] = "local_authorized"
+    commercial_demo_authorized: bool = False
+    authorization_ref: str | None = Field(default=None,min_length=2,max_length=240)
 
     @model_validator(mode="after")
     def validate_locator(self):
@@ -39,6 +42,10 @@ class SourceSpec(BaseModel):
             if parsed.scheme not in {"rtsp","rtsps"} or not parsed.hostname or parsed.fragment:
                 raise ValueError("invalid RTSP source")
             _ = parsed.port
+        if self.commercial_demo_authorized and not self.authorization_ref:
+            raise ValueError("commercial demo authorization requires reference")
+        if self.data_origin == "synthetic_demo" and self.kind != "file":
+            raise ValueError("synthetic demo source must be a file")
         return self
 
     def decoder_config(self, root: Path):
