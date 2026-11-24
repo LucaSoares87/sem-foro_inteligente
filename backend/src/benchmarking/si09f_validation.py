@@ -12,6 +12,8 @@ from src.archive.store import fingerprint
 from src.benchmarking.bellevue import prepare_bellevue_manifest
 from src.benchmarking.si09d_preflight import prepare
 from src.benchmarking.si09e_reference import IndependentReference, QueueLabel, compare_reference
+from src.benchmarking.si09e_diagnostics import temporal_geometry
+from src.vision.model_artifacts import YOLOX_S_SHA256
 from src.validation.contracts import CountValue
 from src.validation.io import load_json_model, sha256_file
 
@@ -100,6 +102,7 @@ def prepare_case(case, source, video, geometry, output):
         "required_count_keys":[{"line_id":l,"direction":d} for l,d in sorted(counts)],
         "required_queue_keys":[{"second":s,"approach_id":a,"native_frame_one_based":30*(s+1)} for s,a in sorted(queues)],
         "calibration_state":"PENDING_INDEPENDENT_GEOMETRY_REVIEW",
+        "calibration_review_required":["fixed_camera_and_view","line_segment_and_direction","roi_and_occlusion","service_group_phase_evidence","storage_capacity_evidence","visibility_evidence","privacy_and_research_authorization"],
         "commercial_demo_authorized":False,"operationally_validated":False,"physical_actuation":False}
     write_new(root/"annotation-packet.json",packet)
     return packet
@@ -114,6 +117,9 @@ def gate(case, preflight, geometry, report, a, b, review=None):
     digest = body.pop("result_sha256",None)
     if digest != fingerprint(body) or report.get("scope") != "paired_diagnostic_not_accuracy":
         raise ValueError("invalid paired report hash or scope")
+    if report.get("model_sha256")!=YOLOX_S_SHA256 or report.get("origin")!="external_real_replay" or any(
+            report.get(k) is not False for k in ("candidate_promoted","commercial_demo_authorized","operationally_validated","physical_actuation")):
+        raise ValueError("unexpected model or research scope")
     if report["video_sha256"] != preflight["derived_sha256"] or report.get("unique_inferences") != 960:
         raise ValueError("paired report not bound to prepared holdout")
     if [x["fps"] for x in report["runs"]] != [30,15,10,5] or [x["frames"] for x in report["runs"]] != [960,480,320,160]:
@@ -130,8 +136,8 @@ def gate(case, preflight, geometry, report, a, b, review=None):
             pqueues={(int(s),k) for s,groups in variant["queue_by_second"].items() for k in groups}
             if pcounts!=expected_c or pqueues!=expected_q:
                 raise ValueError("paired report coverage mismatch")
-        if run["variants"]["baseline"]["geometry_sha256"]!=geo_sha:
-            raise ValueError("baseline geometry mismatch")
+        if run["variants"]["baseline"]["geometry_sha256"]!=geo_sha or run["variants"]["temporal_candidate"]["geometry_sha256"]!=TrafficEngine(temporal_geometry(geometry,run["fps"])).geometry_hash:
+            raise ValueError("paired geometry mismatch")
     mappings=[]
     hashes=[]
     for ann in (a,b):
