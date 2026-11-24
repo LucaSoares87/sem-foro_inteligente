@@ -4,6 +4,7 @@ import pytest
 from src.config import Settings
 from src.db import Base
 from src.main import create_app
+from src.geography.contracts import IntersectionSeed
 from src.predictive.history import build_intersection_history
 from test_predictive import make_windows
 
@@ -57,9 +58,7 @@ def test_empty_registered_intersection_returns_empty_history(tmp_path):
     app=create_app(settings)
     with TestClient(app) as client:
         Base.metadata.create_all(app.state.engine)
-        app.state.geography.sync((
-            __import__("src.geography.contracts",fromlist=["IntersectionSeed"]).IntersectionSeed(code="CR_02",name="Sem câmera"),
-        ))
+        app.state.geography.sync((IntersectionSeed(code="CR_02",name="Sem câmera"),))
         response=client.get("/api/v1/predictive/intersections/CR_02/history")
         assert response.status_code==200
         assert response.json()["state"]=="empty"

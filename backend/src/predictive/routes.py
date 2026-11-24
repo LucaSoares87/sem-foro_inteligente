@@ -24,8 +24,8 @@ async def history(source: str,request: Request,after: int=Query(0,ge=0,le=2**31-
 
 
 @router.get("/intersections/{intersection}/history")
-async def intersection_history(intersection: str=Path(pattern=r"^[A-Z0-9_-]{2,80}$"),
-                               request: Request=None,
+async def intersection_history(request: Request,
+                               intersection: str=Path(pattern=r"^[A-Z0-9_-]{2,80}$"),
                                limit: int=Query(60,ge=2,le=120)):
     service=request.app.state.history
     if not service.enabled:
