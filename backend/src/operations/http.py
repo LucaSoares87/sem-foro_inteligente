@@ -53,6 +53,23 @@ def install_http_middleware(app):
             }})
             return response
         status_code=500
+        if (request.method.upper() not in {"GET","HEAD","OPTIONS"} and
+                request.app.state.settings.audit_enabled and
+                request.app.state.settings.auth_mode=="proxy_headers"):
+            try:
+                await run_in_threadpool(request.app.state.audit_store.available)
+            except Exception as exc:
+                metrics.audit_failed()
+                status_code=503
+                metrics.finish(started,status_code)
+                response=JSONResponse({"status":"error","code":"audit_unavailable","request_id":request_id},
+                                      status_code=status_code)
+                response.headers["X-Request-ID"]=request_id
+                response.headers["Cache-Control"]="no-store"
+                logger.error("audit_preflight_failed",extra={"details":{
+                    "request_id":request_id,"error_type":type(exc).__name__
+                }})
+                return response
         try:
             response=await call_next(request)
             status_code=response.status_code

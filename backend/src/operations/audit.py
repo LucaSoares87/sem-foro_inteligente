@@ -6,6 +6,11 @@ class AuditStore:
     def __init__(self,engine):
         self.engine=engine
 
+    def available(self):
+        with Session(self.engine) as session:
+            session.execute(select(OperationalAuditEvent.id).limit(1)).all()
+        return True
+
     def record(self,request_id,actor,roles,method,route,status_code,outcome):
         row=OperationalAuditEvent(
             request_id=request_id,actor=actor,roles=",".join(sorted(roles)),
