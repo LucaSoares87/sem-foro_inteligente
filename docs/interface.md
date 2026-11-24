@@ -13,3 +13,16 @@ A derivação de métricas executivas fica em funções puras testadas. Cruzamen
 Esta etapa não adiciona mapa real, cadastro de cruzamento, RBAC, autenticação, streaming de imagem no navegador ou persistência de preferências. SI-07B deverá adicionar cadastro geográfico explícito e múltiplos cruzamentos sem alterar os contratos dos motores. SI-07C consolidará histórico visual e o laboratório para demonstração.
 
 Gate: testes Node existentes + testes de navegação/view-model, build Vite, regressão integral de backend e Compose no CI. Não reduzir os gates anteriores.
+
+
+## SI-07C — histórico visual, videowall e demonstração integrada
+
+O histórico visual reutiliza exclusivamente `traffic_windows`, já persistido pelo motor SI-05B. O novo endpoint `GET /api/v1/predictive/intersections/{intersection}/history` consulta somente fontes atualmente registradas para o cruzamento e devolve séries separadas por fonte, linha e sentido. Não existe soma entre câmeras. Cada ponto preserva `analytics_epoch`, qualidade da janela, duração, finalidade do modelo e quantidade observada de passagens. Mudanças de epoch e janelas limitadas interrompem visualmente a linha, evitando representar descontinuidade como série contínua.
+
+O Painel Operacional passa a exibir gráfico SVG nativo, sem biblioteca de gráficos ou dependência externa. A métrica é passagens observadas por janela de aproximadamente 60 segundos; não é demanda latente, fila física ou fluxo municipal consolidado.
+
+`/videowall` é uma visão imersiva de leitura contínua. Consolida quantidade de cruzamentos cadastrados, fontes, tracks visíveis, passagens da sessão atual, janelas persistidas, mapa WGS84, cruzamentos em atenção e alertas. Ele não soma históricos de múltiplas câmeras e não apresenta ausência de dado como zero.
+
+`/apresentacao` é um roteiro guiado em cinco etapas: visão municipal, cruzamento, histórico, cadeia de inteligência e simulação. O avanço pode ser manual ou automático. A etapa de simulação é explicitamente marcada como sintética e continua usando o motor SI-06 sem atuação física. As etapas anteriores exibem apenas dados observados/estado corrente quando disponíveis.
+
+A SI-07C não adiciona vídeo ao vivo no navegador, nova telemetria física, geocodificação, controle de semáforo, RBAC ou serviços externos. A próxima missão deve ser SI-08A: segurança, observabilidade, auditoria, backup/restore, carga e implantação reproduzível.

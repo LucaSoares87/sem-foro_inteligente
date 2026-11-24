@@ -2,12 +2,14 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { isKnownRoute, normalizePath, routeById, routeFromPath, shouldHandleNavigation, workspaceUrl } from '../src/app/navigation.js'
 
-test('normalizes and resolves the three application workspaces', () => {
+test('normalizes and resolves all application workspaces', () => {
   assert.equal(normalizePath('/operacional/'), '/operacional')
   assert.equal(routeFromPath('/').id, 'executive')
   assert.equal(routeFromPath('/executivo').id, 'executive')
   assert.equal(routeFromPath('/operacional/').id, 'operations')
   assert.equal(routeFromPath('/laboratorio').id, 'laboratory')
+  assert.equal(routeFromPath('/videowall').id, 'videowall')
+  assert.equal(routeFromPath('/apresentacao').id, 'presentation')
 })
 
 test('unknown routes fail safely to executive without being considered known', () => {
