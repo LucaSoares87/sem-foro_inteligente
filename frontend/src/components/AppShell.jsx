@@ -11,7 +11,7 @@ export default function AppShell({ route, navigate, data, healthStatus, realtime
     <div className="mx-auto grid min-h-screen max-w-[1800px] lg:grid-cols-[260px_minmax(0,1fr)]">
       <aside className="hidden border-r border-slate-800/80 bg-slate-950/80 px-5 py-6 lg:flex lg:flex-col">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">SI-07C</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">SI-08B</p>
           <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">Semáforos Inteligentes</h1>
           <p className="mt-2 text-xs leading-5 text-slate-500">Centro de inteligência urbana em modo consultivo.</p>
         </div>

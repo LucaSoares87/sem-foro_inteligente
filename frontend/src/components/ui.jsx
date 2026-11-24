@@ -36,9 +36,9 @@ export function MetricCard({ label, value, detail, tone = 'neutral' }) {
 }
 
 export function StatusPill({ value, label }) {
-  const tone = ['online','current','available','ready','running','simulation_available'].includes(value)
-    ? 'good' : ['degraded','reconnecting','limited_sampling','loading','starting'].includes(value)
-      ? 'warning' : ['offline','error'].includes(value) ? 'critical' : 'neutral'
+  const tone = ['online','current','available','ready','running','simulation_available','ready_for_supervised_pilot'].includes(value)
+    ? 'good' : ['degraded','reconnecting','limited_sampling','loading','starting','not_run','pending_human'].includes(value)
+      ? 'warning' : ['offline','error','failed','blocked','blocked_by_field_evidence'].includes(value) ? 'critical' : 'neutral'
   return <span className={'status-pill ' + toneClasses[tone]}>{label || displayStatus(value)}</span>
 }
 
