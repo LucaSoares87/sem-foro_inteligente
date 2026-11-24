@@ -22,6 +22,7 @@ class EvidenceRecord(Contract):
     state: EvidenceState
     origin: EvidenceOrigin
     artifact_sha256: str | None = Field(default=None,pattern=r"^[0-9a-f]{64}$")
+    subject_sha256: str | None = Field(default=None,pattern=r"^[0-9a-f]{64}$")
     reference: str | None = Field(default=None,min_length=1,max_length=240)
     executed_at: AwareDatetime | None = None
     note: str | None = Field(default=None,min_length=1,max_length=500)
@@ -30,11 +31,12 @@ class EvidenceRecord(Contract):
     @model_validator(mode="after")
     def validate_evidence(self):
         if self.state=="ready":
-            if self.gate=="human_acceptance":
-                if not self.human_authorized or not self.reference or not self.executed_at:
-                    raise ValueError("human acceptance requires explicit authorization")
-            elif not self.artifact_sha256 or not self.executed_at:
-                raise ValueError("ready evidence requires artifact and execution time")
+            if not self.artifact_sha256 or not self.reference or not self.executed_at:
+                raise ValueError("ready evidence requires artifact, reference and execution time")
+            if self.gate=="human_acceptance" and not self.human_authorized:
+                raise ValueError("human acceptance requires explicit authorization")
+            if self.gate=="authorized_model" and not self.subject_sha256:
+                raise ValueError("authorized model evidence requires model sha256")
             if self.origin=="synthetic" and self.gate in PILOT_REQUIRED:
                 raise ValueError("synthetic evidence cannot satisfy pilot gate")
         if self.state=="failed" and not self.note:

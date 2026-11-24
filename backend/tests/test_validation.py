@@ -155,10 +155,10 @@ def test_contracts_reject_provenance_mismatches_duplicates_and_post_capture_thre
 def test_evidence_cannot_fake_field_readiness():
     with pytest.raises(ValidationError):
         EvidenceRecord(gate="authorized_model",state="ready",origin="synthetic",
-            artifact_sha256="b"*64,executed_at=NOW)
+            artifact_sha256="b"*64,subject_sha256="c"*64,reference="synthetic-report",executed_at=NOW)
     with pytest.raises(ValidationError):
         EvidenceRecord(gate="human_acceptance",state="ready",origin="external",
-            reference="ticket-1",executed_at=NOW,human_authorized=False)
+            artifact_sha256="d"*64,reference="ticket-1",executed_at=NOW,human_authorized=False)
     with pytest.raises(ValueError):
         load_evidence(json.dumps([
             {"gate":"recovery_drill","state":"not_run","origin":"ci"},
@@ -167,7 +167,7 @@ def test_evidence_cannot_fake_field_readiness():
 
 def test_validation_service_stays_blocked_until_all_pilot_evidence_exists():
     video=SimpleNamespace(sessions={})
-    vision=SimpleNamespace(status=lambda:{"configured":False,"purpose":None})
+    vision=SimpleNamespace(status=lambda:{"configured":False,"purpose":None,"model_sha256":None})
     status=ValidationService(video,vision).status()
     assert status["framework_ready"] is True
     assert status["pilot_ready"] is False
@@ -183,10 +183,17 @@ def test_validation_service_stays_blocked_until_all_pilot_evidence_exists():
     ):
         records.append(EvidenceRecord(gate=gate,state="ready",
             origin="ci" if gate=="recovery_drill" else "external",
-            artifact_sha256=hashlib.sha256(gate.encode()).hexdigest(),executed_at=NOW))
+            artifact_sha256=hashlib.sha256(gate.encode()).hexdigest(),
+            subject_sha256="e"*64 if gate=="authorized_model" else None,
+            reference="evidence-"+gate,executed_at=NOW))
     records.append(EvidenceRecord(gate="human_acceptance",state="ready",origin="external",
-        reference="approved-field-acceptance",executed_at=NOW,human_authorized=True))
-    ready=ValidationService(video,vision,records).status()
+        artifact_sha256="f"*64,reference="approved-field-acceptance",executed_at=NOW,human_authorized=True))
+    still_blocked=ValidationService(video,vision,records).status()
+    assert still_blocked["pilot_ready"] is False
+    physical_video=SimpleNamespace(sessions={"CAM_01":SimpleNamespace(
+        spec=SimpleNamespace(kind="rtsp"),state="running")})
+    matching_vision=SimpleNamespace(status=lambda:{"configured":True,"purpose":"authorized_candidate","model_sha256":"e"*64})
+    ready=ValidationService(physical_video,matching_vision,records).status()
     assert ready["pilot_ready"] is True
     assert ready["missing_evidence"]==[]
     assert ready["pilot_decision"]=="ready_for_supervised_pilot"

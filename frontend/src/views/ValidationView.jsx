@@ -80,7 +80,7 @@ export default function ValidationView(){
       <Panel>
         <SectionHeading eyebrow="Observação de runtime" title="Ativos disponíveis agora" description="Configuração atual não substitui evidência formal de homologação."/>
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="info-block"><span>Modelo candidato</span><strong>{runtime.authorized_candidate_model_loaded?'Carregado':'Não'}</strong><small>Purpose authorized_candidate</small></div>
+          <div className="info-block"><span>Modelo candidato</span><strong>{runtime.authorized_candidate_model_loaded?'Carregado':'Não'}</strong><small>{runtime.model_sha256?shortHash(runtime.model_sha256):'Purpose authorized_candidate'}</small></div>
           <div className="info-block"><span>Fontes físicas</span><strong>{runtime.physical_sources_configured??0}</strong><small>Webcam/RTSP configuradas</small></div>
           <div className="info-block"><span>Fontes rodando</span><strong>{runtime.physical_sources_running??0}</strong><small>Snapshot atual</small></div>
         </div>

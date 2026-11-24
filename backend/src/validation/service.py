@@ -24,6 +24,7 @@ class ValidationService:
                   if session.spec.kind in {"webcam","rtsp"}]
         return {
             "authorized_candidate_model_loaded": bool(vision.get("configured") and vision.get("purpose")=="authorized_candidate"),
+            "model_sha256": vision.get("model_sha256"),
             "physical_sources_configured": len(physical),
             "physical_sources_running": sum(1 for session in physical if session.state=="running"),
         }
@@ -48,15 +49,23 @@ class ValidationService:
             if evidence:
                 state=evidence.state
                 note=evidence.note or default_note
+                if gate=="authorized_model" and state=="ready":
+                    if not runtime["authorized_candidate_model_loaded"] or runtime["model_sha256"]!=evidence.subject_sha256:
+                        state="blocked"
+                        note="O modelo carregado não corresponde ao SHA-256 aprovado na evidência."
+                if gate=="physical_camera" and state=="ready" and runtime["physical_sources_configured"]<1:
+                    state="blocked"
+                    note="A evidência existe, mas nenhuma fonte física webcam/RTSP está configurada neste runtime."
                 item={
                     "gate":gate,"state":state,"origin":evidence.origin,
                     "reference":evidence.reference,"artifact_sha256":evidence.artifact_sha256,
+                    "subject_sha256":evidence.subject_sha256,
                     "executed_at":evidence.executed_at.isoformat() if evidence.executed_at else None,
                     "note":note,
                 }
             else:
                 item={"gate":gate,"state":default_state,"origin":None,"reference":None,
-                      "artifact_sha256":None,"executed_at":None,"note":default_note}
+                      "artifact_sha256":None,"subject_sha256":None,"executed_at":None,"note":default_note}
             gates.append(item)
         ready={item["gate"] for item in gates if item["state"]=="ready"}
         missing=sorted(PILOT_REQUIRED-ready)
