@@ -42,6 +42,12 @@ from src.operations.security import security_status
 from src.validation.contracts import load_evidence
 from src.validation.routes import router as validation_router
 from src.validation.service import ValidationService
+from src.queueing.persistence import QueuePersistence
+from src.queueing.routes import router as queue_router
+from src.queueing.service import QueueService
+from src.queueing.store import QueueStore
+from src.optimization.routes import router as optimization_router
+from src.optimization.service import OptimizationService
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +77,13 @@ def create_app(settings=None):
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
         app.state.audit_store = AuditStore(app.state.engine)
+        app.state.queue_store = QueueStore(app.state.engine)
+        app.state.optimization = OptimizationService()
+        app.state.queue_intelligence = QueueService(app.state.tracking,app.state.analytics,geometry)
+        app.state.queue_intelligence.optimizer = app.state.optimization
+        app.state.queue_persistence = QueuePersistence(app.state.queue_store,app.state.settings.durable_archive)
+        app.state.queue_intelligence.persistence = app.state.queue_persistence
+        app.state.tracking.queue_intelligence = app.state.queue_intelligence
         try:
             validation_evidence = load_evidence(app.state.settings.validation_evidence_json.get_secret_value())
             validation_error = None
@@ -101,6 +114,7 @@ def create_app(settings=None):
         try:
             app.state.ingestion.start()
             app.state.history.start()
+            app.state.queue_persistence.start()
             app.state.vision.start()
             yield
         finally:
@@ -114,7 +128,10 @@ def create_app(settings=None):
                     await app.state.ingestion.stop()
             finally:
                 try:
-                    await app.state.history.stop()
+                    try:
+                        await app.state.history.stop()
+                    finally:
+                        await app.state.queue_persistence.stop()
                 finally:
                     await run_in_threadpool(app.state.engine.dispose)
 
@@ -134,6 +151,8 @@ def create_app(settings=None):
     app.include_router(geography_router)
     app.include_router(operations_router)
     app.include_router(validation_router)
+    app.include_router(queue_router)
+    app.include_router(optimization_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -170,6 +189,9 @@ def create_app(settings=None):
                 "metrics": request.app.state.operations_metrics.snapshot()
             },
             "validation": request.app.state.validation.health_status(),
+            "queue_intelligence": request.app.state.queue_intelligence.health_status(),
+            "optimization": request.app.state.optimization.health_status(),
+            "queue_persistence": request.app.state.queue_persistence.status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),

@@ -27,5 +27,6 @@ def eligibility(analytics,history,source):
             "analytics_epoch":str(snapshot.analytics_epoch) if snapshot is not None else None,
             "history_state":history.status()["state"],
             "missing_evidence":["calibrated_arrival_demand","validated_detector_and_counts",
-                "approved_intersection_geometry_and_conflicts","pedestrian_and_clearance_study",
+                "approved_intersection_geometry_and_conflicts","calibrated_queue_state_and_storage",
+                "validated_dynamic_x_cost_weights","pedestrian_and_clearance_study",
                 "independent_traffic_engineering_review"]}

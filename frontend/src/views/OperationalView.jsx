@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react'
 import ForecastPanel from '../ForecastPanel.jsx'
 import HistoryPanel from '../components/HistoryPanel.jsx'
+import QueueOptimizationPanel from '../components/QueueOptimizationPanel.jsx'
 import { operationalRows } from '../app/geography.js'
 import { displayStatus } from '../health.js'
 import { DataTable, EmptyState, Panel, SectionHeading, StatusPill } from '../components/ui.jsx'
@@ -75,6 +76,8 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
 
     <HistoryPanel intersection={selected} enabled={data?.predictive?.state !== 'disabled'} />
 
+    <QueueOptimizationPanel intersection={selected} />
+
     <div className="grid gap-6 xl:grid-cols-2">
       <Panel>
         <SectionHeading title="Inteligência visual" description="Resumo global dos motores; os detalhes de fonte acima permanecem filtrados pelo cruzamento." />
@@ -92,6 +95,7 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
           <li>Cobertura visual não representa ocupação física da via.</li>
           <li>Previsão representa passagens observadas, não demanda latente.</li>
           <li>O motor de decisão permanece em simulação e abstenção operacional.</li>
+          <li>Continuidade de fluxo é um proxy baseado em filas, espera e chegadas; não representa velocidade física sem calibração métrica.</li>
         </ul>
       </Panel>
     </div>

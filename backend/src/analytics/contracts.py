@@ -8,6 +8,7 @@ Point = tuple[float,float]
 Box = tuple[float,float,float,float]
 MAX_REGIONS = 8
 MAX_LINES = 8
+MAX_APPROACHES = 8
 
 class Contract(BaseModel):
     model_config = ConfigDict(frozen=True,extra="forbid",allow_inf_nan=False)
@@ -37,11 +38,25 @@ class CountingLine(Contract):
             raise ValueError("line too short")
         return self
 
+class QueueApproachConfig(Contract):
+    approach_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    service_group: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    region_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    discharge_line_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    discharge_direction: Literal["negative_to_positive","positive_to_negative"]
+    storage_capacity_vehicles: int = Field(strict=True,ge=1,le=200)
+    stop_speed_normalized_per_s: float = Field(default=.015,ge=.001,le=.2)
+    min_stop_seconds: float = Field(default=1.0,ge=.25,le=10)
+    rate_window_seconds: float = Field(default=15.0,ge=5,le=60)
+    visibility_score: float = Field(default=.5,ge=.1,le=1)
+    visibility_calibrated: bool = False
+
 class SourceGeometry(Contract):
     source_id: str = Field(pattern=r"^[A-Za-z0-9_-]{2,80}$")
     intersection_code: str = Field(pattern=r"^[A-Z0-9_-]{2,80}$")
     regions: tuple[Region,...] = Field(default=(),max_length=MAX_REGIONS)
     lines: tuple[CountingLine,...] = Field(default=(),max_length=MAX_LINES)
+    approaches: tuple[QueueApproachConfig,...] = Field(default=(),max_length=MAX_APPROACHES)
     max_gap_frames: int = Field(default=5,strict=True,ge=1,le=30)
     max_gap_seconds: float = Field(default=.75,ge=.1,le=2)
 
@@ -51,6 +66,13 @@ class SourceGeometry(Contract):
             raise ValueError("no geometry configured")
         if len({r.region_id for r in self.regions})!=len(self.regions) or len({l.line_id for l in self.lines})!=len(self.lines):
             raise ValueError("duplicate geometry id")
+        if len({a.approach_id for a in self.approaches})!=len(self.approaches):
+            raise ValueError("duplicate queue approach id")
+        regions={r.region_id for r in self.regions}
+        lines={l.line_id for l in self.lines}
+        for approach in self.approaches:
+            if approach.region_id not in regions or approach.discharge_line_id not in lines:
+                raise ValueError("queue approach references unknown geometry")
         return self
 
 def load_geometry(raw,registered):

@@ -81,3 +81,29 @@ python3 ops/recovery_drill.py --base-url http://127.0.0.1:5173 --component backe
 ```
 
 Consulte `docs/si08b/` antes de produzir os vídeos de demonstração ou executar captura de campo.
+
+
+## SI-09 — Queue Intelligence & Dynamic Clear-First Optimization
+A SI-09 adiciona uma camada observacional de filas sem substituir SI-06. O pipeline permanece:
+
+```text
+vídeo -> YOLO -> tracking -> analytics -> queue intelligence -> optimization
+```
+
+A geometria de cada fonte pode declarar `approaches` vinculados a uma ROI, linha de descarga e grupo de serviço. O estimador calcula fila observada, chegada, descarga, espera, ocupação de armazenamento e confiança. A velocidade usada para detectar parada é somente movimento normalizado na imagem; velocidade física em m/s continua indisponível sem calibração métrica.
+
+O otimizador compara, em simulação, duas sequências de serviço para exatamente dois grupos explícitos:
+- fila menor -> fluxo dominante;
+- fluxo dominante -> fila menor.
+
+`dynamic_x_safe_vehicles` é um gate de segurança: representa o maior tamanho estimado da fila menor que pode ser considerado para limpeza prioritária sem levar o grupo dominante à faixa crítica de armazenamento no modelo. Mesmo quando existe preferência simulada, `operational_decision` permanece `abstain` e `physical_actuation=false`.
+
+APIs:
+- `/api/v1/queue/status`;
+- `/api/v1/queue/sources/{source}/latest`;
+- `/api/v1/queue/sources/{source}/history`;
+- `/api/v1/optimization/status`;
+- `/api/v1/optimization/sources/{source}/latest`;
+- `/api/v1/optimization/sources/{source}/history`.
+
+Consulte `docs/si09/` para o modelo matemático, protocolo Bellevue e limites de interpretação.

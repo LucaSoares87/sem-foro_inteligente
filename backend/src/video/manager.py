@@ -170,7 +170,9 @@ class VideoSession:
         if self.state=="running" and len(self.arrivals)>1 and self.arrivals[-1]>self.arrivals[0]:
             fps = (len(self.arrivals)-1)/(self.arrivals[-1]-self.arrivals[0])
         return {"source_id":self.spec.source_id,"intersection_code":self.spec.intersection_code,
-                "kind":self.spec.kind,"state":self.state,"error_code":self.error,
+                "kind":self.spec.kind,"data_origin":self.spec.data_origin,
+                "commercial_demo_authorized":self.spec.commercial_demo_authorized,
+                "state":self.state,"error_code":self.error,
                 "frames_received":self.frames,"buffer_overwrites":self.overwritten,
                 "reconnects":self.reconnects,"target_fps":self.spec.target_fps,
                 "measured_fps":fps,"decode_to_receive_ms":self.last_delay_ms,

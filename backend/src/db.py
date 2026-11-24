@@ -3,7 +3,7 @@ from sqlalchemy import BigInteger, Integer, UniqueConstraint, DateTime, String, 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import create_engine
 
-SCHEMA_REVISION = "0005_operational_hardening"
+SCHEMA_REVISION = "0006_queue_optimization"
 
 class Base(DeclarativeBase):
     pass
@@ -88,4 +88,28 @@ class OperationalAuditEvent(Base):
     route: Mapped[str] = mapped_column(String(200))
     status_code: Mapped[int] = mapped_column(Integer)
     outcome: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class QueueStateRecord(Base):
+    __tablename__ = "queue_states"
+    __table_args__ = (UniqueConstraint("source_id","queue_epoch","frame_sequence",name="uq_queue_state"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(80), index=True)
+    intersection_code: Mapped[str] = mapped_column(String(80), index=True)
+    queue_epoch: Mapped[str] = mapped_column(String(36))
+    frame_sequence: Mapped[int] = mapped_column(BigInteger)
+    payload: Mapped[dict] = mapped_column(JSON)
+    digest: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+class OptimizationExperimentRecord(Base):
+    __tablename__ = "optimization_experiments"
+    __table_args__ = (UniqueConstraint("source_id","state_sha256",name="uq_optimization_state"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(80), index=True)
+    intersection_code: Mapped[str] = mapped_column(String(80), index=True)
+    state_sha256: Mapped[str] = mapped_column(String(64))
+    payload: Mapped[dict] = mapped_column(JSON)
+    digest: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
