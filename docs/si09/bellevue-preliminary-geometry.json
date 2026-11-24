@@ -1,0 +1,72 @@
+{
+  "source_id": "BELLEVUE_116TH_NE12TH",
+  "intersection_code": "BELLEVUE_116TH_NE12TH",
+  "regions": [
+    {
+      "region_id": "upper_left_visible",
+      "xyxy": [
+        0.35,
+        0.1,
+        0.47,
+        0.27
+      ]
+    },
+    {
+      "region_id": "upper_right_visible",
+      "xyxy": [
+        0.67,
+        0.13,
+        0.81,
+        0.3
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "line_id": "upper_left_discharge",
+      "start": [
+        0.35,
+        0.29
+      ],
+      "end": [
+        0.47,
+        0.245
+      ],
+      "deadband": 0.008
+    },
+    {
+      "line_id": "upper_right_discharge",
+      "start": [
+        0.615,
+        0.25
+      ],
+      "end": [
+        0.8,
+        0.4
+      ],
+      "deadband": 0.008
+    }
+  ],
+  "approaches": [
+    {
+      "approach_id": "upper_left",
+      "service_group": "experimental_a",
+      "region_id": "upper_left_visible",
+      "discharge_line_id": "upper_left_discharge",
+      "discharge_direction": "negative_to_positive",
+      "storage_capacity_vehicles": 12,
+      "visibility_score": 0.5,
+      "visibility_calibrated": false
+    },
+    {
+      "approach_id": "upper_right",
+      "service_group": "experimental_b",
+      "region_id": "upper_right_visible",
+      "discharge_line_id": "upper_right_discharge",
+      "discharge_direction": "negative_to_positive",
+      "storage_capacity_vehicles": 12,
+      "visibility_score": 0.5,
+      "visibility_calibrated": false
+    }
+  ]
+}
