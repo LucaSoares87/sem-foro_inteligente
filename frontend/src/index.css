@@ -71,3 +71,25 @@ button:focus-visible, a:focus-visible, select:focus-visible {
   .geo-location-card strong { @apply block text-sm text-slate-200; }
   .geo-location-card small { @apply block text-[11px] leading-5 text-slate-500; }
 }
+
+@layer components {
+  .history-chart { @apply min-h-72 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/45 p-3; }
+  .history-grid { stroke: rgb(51 65 85); stroke-width: 1; stroke-opacity: .55; }
+  .history-line { fill: none; stroke: rgb(56 189 248); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .history-point { fill: rgb(125 211 252); stroke: rgb(15 23 42); stroke-width: 2; }
+  .history-point-limited { fill: rgb(251 191 36); }
+}
+
+@layer components {
+  .history-stat { @apply min-w-16 rounded-lg border border-slate-800 bg-slate-950/50 px-2 py-2; }
+  .history-stat span { @apply block text-[10px] uppercase tracking-wider text-slate-600; }
+  .history-stat strong { @apply mt-1 block text-sm text-slate-200; }
+  .videowall-shell { @apply flex min-h-screen flex-col gap-4 bg-[#050b14] p-4 sm:p-5 xl:h-screen xl:overflow-hidden; }
+  .videowall-header { @apply flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3; }
+  .presentation-shell { @apply mx-auto flex min-h-screen max-w-[1800px] flex-col bg-[#07101d] p-4 sm:p-6 lg:h-screen lg:overflow-hidden; }
+  .presentation-step { @apply flex shrink-0 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-xs text-slate-400 transition hover:border-slate-700 hover:text-slate-200; }
+  .presentation-step span { @apply grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[10px] text-slate-400; }
+  .presentation-step small { @apply rounded bg-amber-400/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300; }
+  .presentation-step-active { @apply border-sky-400/30 bg-sky-400/10 text-sky-100; }
+  .presentation-step-active span { @apply bg-sky-300 text-slate-950; }
+}

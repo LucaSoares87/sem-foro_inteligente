@@ -1,9 +1,10 @@
 from typing import Literal
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Path, Query, Request
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.exc import SQLAlchemyError
 from src.predictive.forecast import estimate
 from src.predictive.store import HistoryIntegrityError
+from src.predictive.history import build_intersection_history
 
 router=APIRouter(prefix="/api/v1/predictive",tags=["predictive"])
 
@@ -19,6 +20,29 @@ async def history(source: str,request: Request,after: int=Query(0,ge=0,le=2**31-
     try:
         return await run_in_threadpool(service.store.page,source,after,limit)
     except (SQLAlchemyError,HistoryIntegrityError):
+        raise HTTPException(503,"history_unavailable") from None
+
+
+@router.get("/intersections/{intersection}/history")
+async def intersection_history(request: Request,
+                               intersection: str=Path(pattern=r"^[A-Z0-9_-]{2,80}$"),
+                               limit: int=Query(60,ge=2,le=120)):
+    service=request.app.state.history
+    if not service.enabled:
+        raise HTTPException(503,"history_disabled")
+    source_ids=sorted(source_id for source_id,session in request.app.state.video.sessions.items()
+                      if session.spec.intersection_code==intersection)
+    try:
+        registered=await run_in_threadpool(request.app.state.geography.store.get,intersection)
+        if not source_ids and registered is None:
+            raise HTTPException(404,"intersection_not_found")
+        histories={}
+        for source_id in source_ids:
+            histories[source_id]=await run_in_threadpool(service.store.recent_source,source_id,limit)
+        return build_intersection_history(intersection,histories)
+    except HTTPException:
+        raise
+    except (SQLAlchemyError,HistoryIntegrityError,ValueError):
         raise HTTPException(503,"history_unavailable") from None
 
 @router.get("/sources/{source}/forecast")

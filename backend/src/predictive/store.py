@@ -55,3 +55,10 @@ class HistoryStore:
                 TrafficWindowRecord.source_id==source,TrafficWindowRecord.analytics_epoch==str(epoch)
                 ).order_by(TrafficWindowRecord.start_sequence.desc()).limit(60)).all()
             return [self.decode(r) for r in reversed(rows)]
+
+    def recent_source(self,source,limit):
+        with Session(self.engine) as session:
+            rows=session.scalars(select(TrafficWindowRecord).where(
+                TrafficWindowRecord.source_id==source
+                ).order_by(TrafficWindowRecord.id.desc()).limit(limit)).all()
+            return [self.decode(r) for r in reversed(rows)]
