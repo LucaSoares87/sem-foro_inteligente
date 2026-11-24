@@ -117,7 +117,7 @@ def replay(manifest,spec,geometry,rows,fps):
             if opt.preferred_in_simulation!="abstain" or opt.dynamic_x_safe_vehicles is not None or opt.physical_actuation:
                 raise ValueError("uncalibrated replay must abstain")
             samples[name].extend(a.observation_confidence for a in queue.approaches)
-            states[name][int((i-1)/manifest.fps)]={a.approach_id:a.queue_length for a in queue.approaches}
+            states[name][str(int((i-1)/manifest.fps))]={a.approach_id:a.queue_length for a in queue.approaches}
             final[name]=analytics
     variants={}
     for name,g in configs.items():

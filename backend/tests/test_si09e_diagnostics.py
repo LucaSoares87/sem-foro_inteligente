@@ -1,8 +1,10 @@
 from datetime import datetime,timezone
+import json
 
 import pytest
 from src.analytics.contracts import SourceGeometry
 from src.analytics.engine import TrafficEngine
+from src.archive.store import fingerprint
 from src.benchmarking.si09e_diagnostics import temporal_geometry,replay
 from src.benchmarking.si09e_reference import IndependentReference,compare_reference
 from src.validation.contracts import DatasetManifest
@@ -45,10 +47,11 @@ def test_paired_replay_retains_abstention_and_same_samples():
         intersection_code="CR_01",video_filename="clip.mp4",video_sha256="a"*64,
         provenance="test",license_ref="test",authorization_ref="test",
         recorded_at=datetime(2017,1,1,tzinfo=timezone.utc),fps=30,width=1280,height=720,
-        frame_count=30,classes=("car",))
+        frame_count=360,classes=("car",))
     spec=ModelSpec(filename="fixture.onnx",sha256="b"*64,provenance="test",license_ref="test")
     for fps in (30,15,10,5):
-        result=replay(manifest,spec,geo,[((),1.)]*30,fps)
-        assert result["frames"]==fps
+        result=replay(manifest,spec,geo,[((),1.)]*360,fps)
+        assert result["frames"]==12*fps
+        assert fingerprint(result)==fingerprint(json.loads(json.dumps(result)))
         assert result["unique_confirmed_track_ids"]==0
         assert all(v["decision_state"]=="abstain" and v["x"] is None for v in result["variants"].values())
