@@ -39,6 +39,9 @@ from src.operations.http import install_http_middleware, websocket_authorized
 from src.operations.metrics import OperationsMetrics
 from src.operations.routes import router as operations_router
 from src.operations.security import security_status
+from src.validation.contracts import load_evidence
+from src.validation.routes import router as validation_router
+from src.validation.service import ValidationService
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +71,12 @@ def create_app(settings=None):
             app.state.vision.state, app.state.vision.error = "error", "model_config_invalid"
         app.state.engine = make_engine(app.state.settings)
         app.state.audit_store = AuditStore(app.state.engine)
+        try:
+            validation_evidence = load_evidence(app.state.settings.validation_evidence_json.get_secret_value())
+            validation_error = None
+        except ValueError:
+            validation_evidence, validation_error = (), "validation_evidence_invalid"
+        app.state.validation = ValidationService(app.state.video, app.state.vision, validation_evidence, validation_error)
         app.state.geography = GeographyService(GeographyStore(app.state.engine))
         raw_registry = app.state.settings.intersection_registry_json.get_secret_value()
         try:
@@ -124,6 +133,7 @@ def create_app(settings=None):
     app.include_router(decision_router)
     app.include_router(geography_router)
     app.include_router(operations_router)
+    app.include_router(validation_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
@@ -159,6 +169,7 @@ def create_app(settings=None):
                 "audit_enabled": request.app.state.settings.audit_enabled,
                 "metrics": request.app.state.operations_metrics.snapshot()
             },
+            "validation": request.app.state.validation.health_status(),
             "ingestion": request.app.state.ingestion.status(),
             "pipeline": request.app.state.pipeline.status(),
             "archive": request.app.state.archive.status(database, schema),

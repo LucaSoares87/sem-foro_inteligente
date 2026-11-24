@@ -9,13 +9,15 @@ import OperationalView from './views/OperationalView.jsx'
 import LaboratoryView from './views/LaboratoryView.jsx'
 import VideowallView from './views/VideowallView.jsx'
 import PresentationView from './views/PresentationView.jsx'
+import ValidationView from './views/ValidationView.jsx'
 
 const views = {
   executive: ExecutiveView,
   operations: OperationalView,
   laboratory: LaboratoryView,
   videowall: VideowallView,
-  presentation: PresentationView
+  presentation: PresentationView,
+  validation: ValidationView
 }
 const immersive = new Set(['videowall','presentation'])
 

@@ -3,7 +3,8 @@ export const routes = [
   { id: 'operations', path: '/operacional', label: 'Painel Operacional', short: 'Operacional', description: 'Saúde, fontes e inteligência visual' },
   { id: 'laboratory', path: '/laboratorio', label: 'Laboratório', short: 'Laboratório', description: 'Simulação sintética e comparação' },
   { id: 'videowall', path: '/videowall', label: 'Videowall', short: 'Videowall', description: 'Visão contínua para sala de operações' },
-  { id: 'presentation', path: '/apresentacao', label: 'Demonstração', short: 'Demonstração', description: 'Roteiro guiado da plataforma' }
+  { id: 'presentation', path: '/apresentacao', label: 'Demonstração', short: 'Demonstração', description: 'Roteiro guiado da plataforma' },
+  { id: 'validation', path: '/homologacao', label: 'Homologação', short: 'Homologação', description: 'Gates, evidências e preparo do piloto' }
 ]
 
 const byPath = new Map(routes.map(route => [route.path, route]))

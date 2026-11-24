@@ -6,7 +6,11 @@ const knownStatuses = {
   not_configured: 'Não configurado', idle: 'Inativo', starting: 'Iniciando', loading: 'Carregando modelo', running: 'Recebendo vídeo',
   reconnecting: 'Reconectando', ended: 'Finalizado', stopped: 'Parado', error: 'Falha',
   initializing: 'Inicializando', limited_sampling: 'Amostragem limitada', experimental: 'Experimental',
-  simulation_available: 'Simulação disponível', disabled: 'Desativado'
+  simulation_available: 'Simulação disponível', disabled: 'Desativado',
+  blocked: 'Bloqueado', not_run: 'Não executado', failed: 'Falhou',
+  pending_human: 'Aceite humano pendente',
+  ready_for_supervised_pilot: 'Pronto para piloto supervisionado',
+  blocked_by_field_evidence: 'Bloqueado por evidência de campo'
 }
 
 export function displayStatus(value) {

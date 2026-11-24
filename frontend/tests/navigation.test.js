@@ -10,6 +10,7 @@ test('normalizes and resolves all application workspaces', () => {
   assert.equal(routeFromPath('/laboratorio').id, 'laboratory')
   assert.equal(routeFromPath('/videowall').id, 'videowall')
   assert.equal(routeFromPath('/apresentacao').id, 'presentation')
+  assert.equal(routeFromPath('/homologacao').id, 'validation')
 })
 
 test('unknown routes fail safely to executive without being considered known', () => {

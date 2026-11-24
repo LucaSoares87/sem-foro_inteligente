@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     auth_user_header: str = "x-si-user"
     auth_roles_header: str = "x-si-roles"
     audit_enabled: bool = True
+    validation_evidence_json: SecretStr = SecretStr('[]')
 
     @model_validator(mode="after")
     def validate_db(self):

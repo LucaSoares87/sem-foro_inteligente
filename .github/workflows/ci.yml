@@ -45,7 +45,7 @@ jobs:
       - run: python -m pytest -q tests/test_analytics.py --cov=src.analytics.engine --cov=src.analytics.geometry --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_predictive.py --cov=src.predictive.aggregation --cov=src.predictive.forecast --cov-report=term-missing --cov-fail-under=90
       - run: python -m pytest -q tests/test_decision.py --cov=src.decision.engine --cov=src.decision.service --cov-report=term-missing --cov-fail-under=90
-      - run: python -m pytest -q tests/test_geography.py tests/test_history_view.py tests/test_operations.py
+      - run: python -m pytest -q tests/test_geography.py tests/test_history_view.py tests/test_operations.py tests/test_validation.py
       - run: alembic upgrade head && alembic check
       - run: alembic downgrade base && alembic upgrade head
       - run: ARCHIVE_POSTGRES_TEST=1 python -m pytest -q tests/test_archive_postgres.py tests/test_history_postgres.py
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
       - run: sh -n ops/backup.sh && sh -n ops/restore.sh
-      - run: python3 -m py_compile ops/smoke_load.py
+      - run: python3 -m py_compile ops/smoke_load.py ops/pilot_probe.py ops/recovery_drill.py
       - run: docker compose up --build --wait --wait-timeout 180
       - run: docker compose exec -T backend python -c 'import cv2; import numpy; print(cv2.__version__)'
       - run: test "$(docker compose exec -T backend id -u | tr -d '\r')" != "0"
@@ -93,14 +93,32 @@ jobs:
           curl --fail http://127.0.0.1:5173/laboratorio
           curl --fail http://127.0.0.1:5173/videowall
           curl --fail http://127.0.0.1:5173/apresentacao
+          curl --fail http://127.0.0.1:5173/homologacao
           curl --fail http://127.0.0.1:5173/api/v1/health
           curl --fail http://127.0.0.1:5173/api/v1/intersections
           curl --fail http://127.0.0.1:5173/api/v1/operations/status
           curl --fail http://127.0.0.1:5173/api/v1/operations/metrics
+          curl --fail http://127.0.0.1:5173/api/v1/validation/status
           curl -fsSI http://127.0.0.1:5173/executivo | grep -qi '^Content-Security-Policy:'
           curl -fsSI http://127.0.0.1:5173/executivo | grep -qi '^Permissions-Policy:'
           python3 ops/smoke_load.py --url http://127.0.0.1:5173/api/v1/health --requests 80 --concurrency 8 --p95-ms 5000
           mkdir -p .ci-backups
+          python3 ops/pilot_probe.py --base-url http://127.0.0.1:5173 --samples 3 --interval 0.05 --output .ci-backups/pilot-probe.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('.ci-backups/pilot-probe.json'))
+          assert data['evidence_state']=='measured'
+          assert data['pilot_gate_satisfied'] is False
+          assert data['physical_actuation'] is False
+          PY
+          python3 ops/recovery_drill.py --base-url http://127.0.0.1:5173 --component backend --max-seconds 60 --output .ci-backups/recovery.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('.ci-backups/recovery.json'))
+          assert data['recovered'] is True
+          assert data['pilot_gate_satisfied'] is False
+          assert data['physical_actuation'] is False
+          PY
           ./ops/backup.sh "$PWD/.ci-backups/ci.dump"
           ./ops/restore.sh "$PWD/.ci-backups/ci.dump" traffic_restore_ci
           test "$(docker compose exec -T -e TARGET_DB=traffic_restore_ci postgres sh -ceu 'psql -U "$POSTGRES_USER" -d "$TARGET_DB" -Atqc "SELECT version_num FROM alembic_version"')" = "0005_operational_hardening"

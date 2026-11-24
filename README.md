@@ -56,3 +56,28 @@ python -m pytest -q
 ```
 
 O CI valida Python, PostgreSQL, migrações, frontend, Compose, headers, usuário não-root, smoke de carga e ciclo real de backup/restore. Consulte `docs/hardening.md`, `docs/roadmap.md` e `AGENTS.md`.
+
+
+## Homologação SI-08B
+A rota `/homologacao` apresenta o scorecard do piloto. `/api/v1/validation/status` expõe os mesmos gates por API. O framework não promove automaticamente um ambiente a piloto: modelo, câmera, calibração, ground truth, hardware e aceite humano exigem evidência externa registrada em `VALIDATION_EVIDENCE_JSON`.
+
+O avaliador offline é executado a partir de `backend/`:
+
+```sh
+python -m src.validation.cli evaluate \
+  --manifest manifest.json \
+  --ground-truth ground-truth.json \
+  --predictions predictions.json \
+  --thresholds thresholds.json \
+  --video video.mp4 \
+  --output evaluation-report.json
+```
+
+Os thresholds não possuem defaults comerciais ou municipais; devem ser aprovados antes do ensaio. Para hardware e recuperação:
+
+```sh
+python3 ops/pilot_probe.py --base-url http://127.0.0.1:5173 --samples 30 --interval 1 --require-workload --output pilot-probe.json
+python3 ops/recovery_drill.py --base-url http://127.0.0.1:5173 --component backend --output recovery.json
+```
+
+Consulte `docs/si08b/` antes de produzir os vídeos de demonstração ou executar captura de campo.
