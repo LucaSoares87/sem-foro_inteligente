@@ -10,6 +10,7 @@ class TrackingService:
         self.processed=0
         self.failed=0
         self.analytics=None
+        self.queue_intelligence=None
 
     def consume(self,batch):
         source=batch.source_id
@@ -32,6 +33,8 @@ class TrackingService:
             return
         if self.analytics is not None:
             self.analytics.consume(self.results[source])
+        if self.queue_intelligence is not None:
+            self.queue_intelligence.consume(self.results[source])
 
     def clear(self):
         self.trackers.clear()
@@ -39,6 +42,8 @@ class TrackingService:
         self.errors.clear()
         if self.analytics is not None:
             self.analytics.clear()
+        if self.queue_intelligence is not None:
+            self.queue_intelligence.clear()
 
     def latest(self,source_id):
         current=self.vision.valid_result(source_id)
