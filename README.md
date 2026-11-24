@@ -109,5 +109,14 @@ APIs:
 Consulte `docs/si09/` para o modelo matemático, protocolo Bellevue e limites de interpretação.
 
 
-### Benchmark Bellevue 30/15/10/5 FPS
-A CLI possui `prepare-bellevue` e `fps-sweep` para replay externo com proveniência e comparação de estabilidade do SI-09. O benchmark real exige um clipe Bellevue local e um ONNX compatível/autorizado; nenhum dos dois é incorporado automaticamente ao repositório. Veja `docs/si09/bellevue-fps-benchmark.md`.
+### Benchmark Bellevue e YOLOX-S
+A CLI possui `prepare-bellevue` e `fps-sweep` para replay externo com proveniência e comparação de estabilidade do SI-09. Arquivos Bellevue reais já foram inspecionados e o projeto não assume que o FPS efetivo seja 30 apenas porque o dataset é nominalmente 30 Hz.
+
+O detector agora aceita duas arquiteturas explicitamente versionadas no `ModelSpec`: `ultralytics_yolo` (contrato existente) e `yolox`. O YOLOX-S oficial foi selecionado como candidato de engenharia por sua licença Apache-2.0. A aquisição é administrativa e pinada:
+
+```sh
+cd backend
+python -m src.vision.model_artifacts --output /caminho/yolox_s.onnx --spec-output /caminho/yolox_s.model-spec.json
+```
+
+O worker de inferência permanece offline. Veja `docs/si09/yolox-s.md` e `docs/si09/bellevue-fps-benchmark.md`.

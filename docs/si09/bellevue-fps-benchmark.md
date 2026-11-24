@@ -1,13 +1,20 @@
 # Bellevue FPS benchmark — execução e estado
 
 ## Estado atual
-`BLOCKED_BY_VIDEO_AND_MODEL_BYTES`.
+`MODEL_ADAPTER_IN_VALIDATION`.
 
-A infraestrutura de benchmark está implementada, mas nenhum resultado 30/15/10/5 é registrado como Bellevue enquanto um clipe real e um modelo ONNX autorizado/compatível não estiverem disponíveis localmente. O repositório oficial referencia pastas do Google Drive; não há MP4 pequeno versionado no GitHub oficial. Um espelho acadêmico AVA-100 foi localizado, porém o arquivo de tráfego observado tem aproximadamente 2,62 GB. Baixar esse volume para obter poucos minutos não é uma estratégia de custo aceitável para o primeiro ensaio.
+O conector autorizado do Google Drive permitiu acessar diretamente a pasta pública oficial de Bellevue, eliminando a dependência do espelho AVA-100. Arquivos reais do cruzamento `Bellevue_116th_NE12th` foram inspecionados e uma amostra de 7m06s foi preservada como replay secundário.
 
-A main também não versiona pesos de visão. O worker atual exige ONNX compatível com a saída YOLO `[1,84,N]` e hash registrado no ModelSpec. Não será usado um `.pt` acadêmico sem licença nem será trocada a família do detector apenas para tornar o benchmark executável.
+A inspeção dos bytes mostrou que o FPS efetivo varia entre arquivos apesar do dataset ser descrito nominalmente como 30 Hz. Exemplos observados:
+- `2017-09-11_17-08-39`: 426.58 s, 17.39 FPS — replay real útil, mas não baseline 30 FPS;
+- `2017-09-11_07-08-32`: 408.54 s, 28.94 FPS — próximo de 30, porém não será rotulado como 30;
+- `2017-09-11_12-08-33`: 108.67 s, 30.02 FPS — válido para sanity-check 30 FPS, curto demais para o ensaio principal;
+- `2017-09-11_08-08-50`: 602.78 s, 27.65 FPS;
+- `2017-09-11_14-08-35`: 730.52 s, 21.96 FPS.
 
-Dados derivados encontrados em repositórios acadêmicos não são importados quando a licença não está clara e nunca substituem vídeo + ground truth.
+Portanto o protocolo continua estrito: um ensaio `30/15/10/5` só poderá usar como referência um clipe cujo FPS efetivo realmente suporte 30 FPS. Se isso não ocorrer em um trecho de 5–15 minutos, será criado um protocolo versionado de referência nativa; não haverá arredondamento silencioso.
+
+O modelo escolhido é o YOLOX-S oficial, Apache-2.0. O worker continua sem downloads de rede, mas existe uma etapa administrativa separada, pinada por URL e SHA-256, para materializar o modelo. O adapter YOLOX é isolado do parser original e precisa passar CI com o ONNX oficial antes do benchmark real.
 
 ## Por que o benchmark existe
 O estudo Bellevue/Microsoft mostra que frame rate, resolução, oclusão e posição de câmera afetam videoanalytics. Em vez de copiar uma stack de cascata externa, este projeto mede diretamente a relação custo/estabilidade no nosso próprio pipeline.
@@ -104,3 +111,27 @@ python -m src.validation.cli fps-sweep \
 `engineering_recommended_min_fps` é somente um candidato técnico para reduzir custo computacional. Não altera automaticamente `target_fps` de produção, não satisfaz SI-08B e não autoriza atuação física.
 
 Sem autorização escrita de Bellevue, frames e vídeos não devem ser usados em apresentação comercial.
+
+
+## YOLOX-S selecionado
+Artefato: `yolox_s.onnx` da release oficial YOLOX `0.1.1rc0`.
+
+Contrato:
+- arquitetura: `yolox`;
+- input: `images[1,3,640,640]`;
+- output: `output[1,8400,85]`;
+- classes: COCO-80, mantendo somente bicycle/car/motorcycle/bus/truck;
+- SHA-256 esperado: `c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063`;
+- licença: Apache-2.0;
+- purpose inicial: `validation_only`.
+
+Aquisição administrativa:
+
+```sh
+cd backend
+python -m src.vision.model_artifacts \
+  --output /caminho/modelos/yolox_s.onnx \
+  --spec-output /caminho/modelos/yolox_s.model-spec.json
+```
+
+O comando baixa somente a URL oficial pinada, impõe limite de tamanho, calcula SHA-256 durante streaming e só faz rename atômico do `.part` após a verificação. O subprocesso de inferência não realiza downloads.
