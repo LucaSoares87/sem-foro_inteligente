@@ -40,6 +40,8 @@ class Settings(BaseSettings):
             origins = {x.strip() for x in self.allowed_origins.split(",") if x.strip()}
             if not origins or "*" in origins:
                 raise ValueError("explicit ALLOWED_ORIGINS required in production")
+            if not self.audit_enabled:
+                raise ValueError("AUDIT_ENABLED=true required in production")
         for header in (self.auth_user_header,self.auth_roles_header):
             if not header or any(ch not in "abcdefghijklmnopqrstuvwxyz0123456789-" for ch in header.lower()):
                 raise ValueError("invalid auth header name")
