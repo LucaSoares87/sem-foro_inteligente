@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 from src.analytics.contracts import SourceGeometry
+from src.benchmarking.bellevue import prepare_bellevue_manifest
 from src.benchmarking.contracts import FpsBenchmarkCriteria
 from src.benchmarking.runner import run_fps_sweep
 from src.validation.contracts import (
@@ -76,6 +77,17 @@ def calibration_command(args):
     print(json.dumps(result,sort_keys=True))
     return 0 if result["state"]=="ready" else 4
 
+def prepare_bellevue_command(args):
+    manifest=prepare_bellevue_manifest(args.video,args.dataset_id,args.source_id,
+        args.intersection_code,args.recorded_at)
+    file_sha=_write_model(args.output,manifest)
+    print(json.dumps({
+        "dataset_id":manifest.dataset_id,"output":args.output,
+        "manifest_file_sha256":file_sha,"video_sha256":manifest.video_sha256,
+        "commercial_demo_authorized":manifest.commercial_demo_authorized
+    },sort_keys=True))
+    return 0
+
 def fps_sweep_command(args):
     manifest=load_json_model(args.manifest,DatasetManifest)
     spec=load_json_model(args.model_spec,ModelSpec)
@@ -123,6 +135,15 @@ def main(argv=None):
     cal=sub.add_parser("calibration")
     cal.add_argument("--input",required=True)
     cal.set_defaults(handler=calibration_command)
+
+    prep=sub.add_parser("prepare-bellevue")
+    prep.add_argument("--video",required=True)
+    prep.add_argument("--dataset-id",required=True)
+    prep.add_argument("--source-id",required=True)
+    prep.add_argument("--intersection-code",required=True)
+    prep.add_argument("--recorded-at")
+    prep.add_argument("--output",required=True)
+    prep.set_defaults(handler=prepare_bellevue_command)
 
     fps=sub.add_parser("fps-sweep")
     fps.add_argument("--manifest",required=True)

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/City-of-Bellevue/TrafficVideoDataset",
+  "research_use_statement": "Official README states the dataset is made available for research purposes.",
+  "commercial_demo_authorized": false,
+  "current_benchmark_state": "BLOCKED_BY_VIDEO_BYTES",
+  "intersections": [
+    {"intersection_code":"BELLEVUE_150TH_EASTGATE","official_name":"Bellevue_150th_Eastgate","drive_folder":"https://drive.google.com/drive/folders/1cR1VwoAvEjFLRaUzeYph-bxx4LoM6pOH?usp=sharing"},
+    {"intersection_code":"BELLEVUE_150TH_NEWPORT","official_name":"Bellevue_150th_Newport","drive_folder":"https://drive.google.com/drive/folders/1irB6XKu2iM3BSJ2AEYH4kJl9nfG9j-yy?usp=sharing"},
+    {"intersection_code":"BELLEVUE_150TH_SE38TH","official_name":"Bellevue_150th_SE38th","drive_folder":"https://drive.google.com/drive/folders/1IN6kwywddO3B3uHyC5S18vqf0KEWToJ_?usp=sharing"},
+    {"intersection_code":"BELLEVUE_BELLEVUE_NE8TH","official_name":"Bellevue_Bellevue_NE8th","drive_folder":"https://drive.google.com/drive/folders/17bn7l7Qm5s-r5DYoFQPhviFZ0jWY9qk5?usp=sharing"},
+    {"intersection_code":"BELLEVUE_116TH_NE12TH","official_name":"Bellevue_116th_NE12th","drive_folder":"https://drive.google.com/drive/folders/16coOR8PlNzvmUm1vsaYJVF_bAOQGySa8?usp=sharing"}
+  ],
+  "known_large_mirror": {
+    "project": "I-ESC/Project-AVA AVA-100",
+    "dataset": "iesc/Ava-100",
+    "file": "traffic1.zip",
+    "size_bytes_observed": 2620000000,
+    "sha256_observed": "c5bd08171107174188054d0091609ef0f09c12e0af9e9d802d32e3a0c26766e3",
+    "used_by_project": false,
+    "reason": "Too large for a cost-efficient initial benchmark; upstream Bellevue usage rights are not assumed to change."
+  },
+  "derived_repositories": [
+    {
+      "repository": "https://github.com/shebywiliamsjr/TrafficDT",
+      "artifact_seen": "lstm_dataset.csv",
+      "ingested": false,
+      "reason": "No repository LICENSE found; derived data is not treated as ground truth or vendored dependency."
+    }
+  ]
+}

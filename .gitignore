@@ -21,3 +21,6 @@ backups/
 .ci-backups/
 *.dump
 *.dump.sha256
+external-data/
+benchmark-results/
+*.benchmark.json
