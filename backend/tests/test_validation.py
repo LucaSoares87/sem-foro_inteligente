@@ -1,21 +1,26 @@
+import asyncio
 import hashlib
 import json
 from datetime import datetime,timedelta,timezone
 from types import SimpleNamespace
 import cv2
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
+from src.analytics.contracts import CountingLine,SourceGeometry
 from src.config import Settings
 from src.main import create_app
 from src.validation.contracts import (
     CalibrationChecklist,CountValue,DatasetManifest,EvidenceRecord,EvaluationRequest,
-    EvaluationThresholds,GroundTruth,GroundTruthObject,PredictedObject,Predictions,
-    calibration_assessment,load_evidence
+    EvaluationThresholds,GroundTruth,GroundTruthObject,PredictedDetection,PredictedTrack,
+    Predictions,calibration_assessment,load_evidence
 )
 from src.validation.engine import evaluate,iou
 from src.validation.io import sha256_file,verify_video
+from src.validation.runner import run_case
 from src.validation.service import ValidationService
+from src.vision.contracts import ModelSpec
 
 NOW=datetime(2026,11,24,tzinfo=timezone.utc)
 
@@ -38,15 +43,26 @@ def truth():
         CountValue(line_id="L1",direction="negative_to_positive",label="bus",count=1),
     ))
 
-def perfect_predictions():
-    return Predictions(dataset_id="case-01",annotations=(
-        PredictedObject(frame_sequence=1,label="car",confidence=.9,xyxy=(.1,.1,.3,.3),track_id=1),
-        PredictedObject(frame_sequence=2,label="car",confidence=.9,xyxy=(.2,.1,.4,.3),track_id=1),
-        PredictedObject(frame_sequence=2,label="bus",confidence=.8,xyxy=(.6,.2,.9,.7),track_id=2),
-    ),counts=(
-        CountValue(line_id="L1",direction="negative_to_positive",label="car",count=1),
-        CountValue(line_id="L1",direction="negative_to_positive",label="bus",count=1),
-    ))
+def predictions(detections=None,tracks=None,counts=None):
+    if detections is None:
+        detections=(
+            PredictedDetection(frame_sequence=1,label="car",confidence=.9,xyxy=(.1,.1,.3,.3)),
+            PredictedDetection(frame_sequence=2,label="car",confidence=.9,xyxy=(.2,.1,.4,.3)),
+            PredictedDetection(frame_sequence=2,label="bus",confidence=.8,xyxy=(.6,.2,.9,.7)),
+        )
+    if tracks is None:
+        tracks=(
+            PredictedTrack(frame_sequence=1,track_id=1,label="car",confidence=.9,xyxy=(.1,.1,.3,.3)),
+            PredictedTrack(frame_sequence=2,track_id=1,label="car",confidence=.9,xyxy=(.2,.1,.4,.3)),
+            PredictedTrack(frame_sequence=2,track_id=2,label="bus",confidence=.8,xyxy=(.6,.2,.9,.7)),
+        )
+    if counts is None:
+        counts=(
+            CountValue(line_id="L1",direction="negative_to_positive",label="car",count=1),
+            CountValue(line_id="L1",direction="negative_to_positive",label="bus",count=1),
+        )
+    return Predictions(dataset_id="case-01",model_sha256="b"*64,geometry_sha256="c"*64,
+                       detections=detections,tracks=tracks,counts=counts)
 
 def thresholds(**changes):
     values=dict(purpose="field_acceptance",approval_reference="approved-thresholds-v1",
@@ -56,9 +72,9 @@ def thresholds(**changes):
     values.update(changes)
     return EvaluationThresholds(**values)
 
-def request(predictions=None,**changes):
+def request(predicted=None,**changes):
     values=dict(manifest=manifest(),ground_truth=truth(),
-        predictions=predictions or perfect_predictions(),thresholds=thresholds(),iou_threshold=.5)
+        predictions=predicted or predictions(),thresholds=thresholds(),iou_threshold=.5)
     values.update(changes)
     return EvaluationRequest(**values)
 
@@ -83,16 +99,21 @@ def test_iou_and_perfect_evaluation_are_deterministic():
     assert first.physical_actuation is False
     assert {item.label for item in first.per_class}=={"car","bus"}
 
-def test_degraded_evaluation_detects_misses_false_positive_switch_and_count_error():
-    predictions=Predictions(dataset_id="case-01",annotations=(
-        PredictedObject(frame_sequence=1,label="car",confidence=.9,xyxy=(.1,.1,.3,.3),track_id=1),
-        PredictedObject(frame_sequence=2,label="car",confidence=.9,xyxy=(.2,.1,.4,.3),track_id=9),
-        PredictedObject(frame_sequence=3,label="bus",confidence=.8,xyxy=(.6,.2,.9,.7),track_id=7),
-    ),counts=(
+def test_degraded_evaluation_separates_detection_tracking_and_count_failures():
+    detected=(
+        PredictedDetection(frame_sequence=1,label="car",confidence=.9,xyxy=(.1,.1,.3,.3)),
+        PredictedDetection(frame_sequence=2,label="car",confidence=.9,xyxy=(.2,.1,.4,.3)),
+        PredictedDetection(frame_sequence=3,label="bus",confidence=.8,xyxy=(.6,.2,.9,.7)),
+    )
+    tracked=(
+        PredictedTrack(frame_sequence=1,track_id=1,label="car",confidence=.9,xyxy=(.1,.1,.3,.3)),
+        PredictedTrack(frame_sequence=2,track_id=9,label="car",confidence=.9,xyxy=(.2,.1,.4,.3)),
+    )
+    counted=(
         CountValue(line_id="L1",direction="negative_to_positive",label="car",count=2),
         CountValue(line_id="L1",direction="negative_to_positive",label="bus",count=0),
-    ))
-    result=evaluate(request(predictions))
+    )
+    result=evaluate(request(predictions(detected,tracked,counted)))
     assert result.detection_macro_f1<1
     assert result.tracking_match_recall==pytest.approx(2/3)
     assert result.identity_switches==1
@@ -104,28 +125,29 @@ def test_degraded_evaluation_detects_misses_false_positive_switch_and_count_erro
 def test_contracts_reject_provenance_mismatches_duplicates_and_post_capture_thresholds():
     with pytest.raises(ValidationError):
         EvaluationRequest(manifest=manifest(frame_count=1),ground_truth=truth(),
-            predictions=perfect_predictions(),thresholds=thresholds())
+            predictions=predictions(),thresholds=thresholds())
     with pytest.raises(ValidationError):
         EvaluationRequest(manifest=manifest(classes=("car",)),ground_truth=truth(),
-            predictions=perfect_predictions(),thresholds=thresholds())
+            predictions=predictions(),thresholds=thresholds())
     with pytest.raises(ValidationError):
-        EvaluationRequest(manifest=manifest(),ground_truth=truth(),predictions=perfect_predictions(),
+        EvaluationRequest(manifest=manifest(),ground_truth=truth(),predictions=predictions(),
             thresholds=thresholds(approved_at=NOW+timedelta(seconds=1)))
     synthetic_manifest=manifest(origin="synthetic",authorization_ref="synthetic-generation",
                                 provenance="synthetic test",recorded_at=NOW)
     with pytest.raises(ValidationError):
         EvaluationRequest(manifest=synthetic_manifest,ground_truth=truth(),
-            predictions=perfect_predictions(),thresholds=thresholds())
+            predictions=predictions(),thresholds=thresholds())
     with pytest.raises(ValidationError):
         GroundTruth(dataset_id="case-01",annotations=(
             GroundTruthObject(frame_sequence=1,object_id="same",label="car",xyxy=(.1,.1,.2,.2)),
             GroundTruthObject(frame_sequence=1,object_id="same",label="car",xyxy=(.2,.2,.3,.3)),
         ))
     with pytest.raises(ValidationError):
-        Predictions(dataset_id="case-01",annotations=(
-            PredictedObject(frame_sequence=1,label="car",confidence=.9,xyxy=(.1,.1,.2,.2),track_id=3),
-            PredictedObject(frame_sequence=1,label="car",confidence=.8,xyxy=(.2,.2,.3,.3),track_id=3),
-        ))
+        Predictions(dataset_id="case-01",model_sha256="b"*64,geometry_sha256="c"*64,detections=(),
+            tracks=(
+              PredictedTrack(frame_sequence=1,track_id=3,label="car",confidence=.9,xyxy=(.1,.1,.2,.2)),
+              PredictedTrack(frame_sequence=1,track_id=3,label="car",confidence=.8,xyxy=(.2,.2,.3,.3)),
+            ))
     duplicate=CountValue(line_id="L1",direction="negative_to_positive",label="car",count=1)
     with pytest.raises(ValidationError):
         GroundTruth(dataset_id="case-01",annotations=(),counts=(duplicate,duplicate))
@@ -183,7 +205,7 @@ def test_video_verification_binds_sha_and_decoder_metadata(tmp_path):
     path.write_bytes(b"authorized-fixture")
     sha=sha256_file(path)
     class Capture:
-        def __init__(self,*_): self.released=False
+        def __init__(self,*_): pass
         def isOpened(self): return True
         def get(self,key):
             return {
@@ -192,11 +214,41 @@ def test_video_verification_binds_sha_and_decoder_metadata(tmp_path):
                 cv2.CAP_PROP_FPS:10,
                 cv2.CAP_PROP_FRAME_COUNT:10,
             }[key]
-        def release(self): self.released=True
+        def release(self): pass
     checked=verify_video(manifest(video_sha256=sha),path,Capture)
     assert checked["sha256"]==sha and checked["decoder"]=="opencv"
     with pytest.raises(ValueError,match="sha256"):
         verify_video(manifest(video_sha256="0"*64),path,Capture)
+
+def test_offline_runner_reuses_detector_tracker_and_traffic_engine(tmp_path):
+    case_manifest=manifest(frame_count=3,classes=("car",))
+    spec=ModelSpec(filename="model.onnx",sha256="d"*64,provenance="test",
+                   license_ref="test-license",purpose="authorized_candidate",confidence=.25)
+    geometry=SourceGeometry(source_id="CAM_01",intersection_code="CR_01",
+        lines=(CountingLine(line_id="L1",start=(.5,0),end=(.5,1)),))
+    frames=[np.zeros((360,640,3),dtype=np.uint8) for _ in range(3)]
+    class Capture:
+        def __init__(self,*_): self.index=0
+        def isOpened(self): return True
+        def read(self):
+            if self.index>=len(frames): return False,None
+            frame=frames[self.index]; self.index+=1; return True,frame
+        def release(self): pass
+    positions=[(.2,.3),(.25,.35),(.65,.75)]
+    class Worker:
+        def __init__(self,*_): self.index=0
+        async def open(self): pass
+        async def close(self): pass
+        async def infer(self,_jpeg):
+            x1,x2=positions[self.index]; self.index+=1
+            return {"inference_ms":1.0,"detections":[{"label":"car","confidence":.9,"xyxy":[x1,.3,x2,.6]}]}
+    result=asyncio.run(run_case(case_manifest,tmp_path/"case.mp4",spec,tmp_path,geometry,
+        worker_factory=Worker,capture_factory=Capture,verify=lambda *_: {}))
+    assert len(result.detections)==3
+    assert len(result.tracks)==2
+    count={(item.line_id,item.direction):item.count for item in result.counts}
+    assert count[("L1","positive_to_negative")]==1
+    assert result.model_sha256=="d"*64
 
 def test_validation_api_reports_blocked_not_fake_ready(tmp_path):
     settings=Settings(app_env="test",database_url=f"sqlite:///{tmp_path/'db.sqlite'}")
