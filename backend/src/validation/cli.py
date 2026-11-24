@@ -1,24 +1,54 @@
 import argparse
+import asyncio
+import hashlib
 import json
 import os
 from pathlib import Path
+from src.analytics.contracts import SourceGeometry
 from src.validation.contracts import (
     CalibrationChecklist,DatasetManifest,EvaluationRequest,EvaluationThresholds,
     GroundTruth,Predictions,calibration_assessment
 )
 from src.validation.engine import evaluate
-from src.validation.io import canonical_json,load_json_model,verify_video
+from src.validation.io import canonical_json,inspect_video,load_json_model,sha256_file,verify_video
+from src.validation.runner import run_case
+from src.vision.contracts import ModelSpec
 
-def _write(path,value):
-    import hashlib
-    payload=dict(value)
-    payload["artifact_sha256"]=hashlib.sha256(canonical_json(payload).encode()).hexdigest()
+def _atomic_write(path,text):
     target=Path(path)
     target.parent.mkdir(parents=True,exist_ok=True)
     temp=target.with_name(target.name+".tmp")
-    temp.write_text(canonical_json(payload),encoding="utf-8")
+    temp.write_text(text,encoding="utf-8")
     os.chmod(temp,0o600)
     temp.replace(target)
+
+def _write_model(path,model):
+    _atomic_write(path,model.model_dump_json(indent=2)+"\n")
+    return sha256_file(path)
+
+def _write_artifact(path,value):
+    payload=dict(value)
+    payload["artifact_sha256"]=hashlib.sha256(canonical_json(payload).encode()).hexdigest()
+    _atomic_write(path,canonical_json(payload))
+    return payload["artifact_sha256"]
+
+def inspect_command(args):
+    result=inspect_video(args.video)
+    artifact=_write_artifact(args.output,result)
+    print(json.dumps({"output":args.output,"artifact_sha256":artifact,
+                      "video_sha256":result["sha256"],"frame_count":result["frame_count"]},sort_keys=True))
+    return 0
+
+def run_case_command(args):
+    manifest=load_json_model(args.manifest,DatasetManifest)
+    spec=load_json_model(args.model_spec,ModelSpec)
+    geometry=load_json_model(args.geometry,SourceGeometry)
+    predictions=asyncio.run(run_case(manifest,args.video,spec,args.model_root,geometry))
+    file_sha=_write_model(args.output,predictions)
+    print(json.dumps({"dataset_id":predictions.dataset_id,"output":args.output,
+                      "predictions_file_sha256":file_sha,
+                      "detections":len(predictions.detections),"tracks":len(predictions.tracks)},sort_keys=True))
+    return 0
 
 def evaluate_command(args):
     manifest=load_json_model(args.manifest,DatasetManifest)
@@ -30,11 +60,11 @@ def evaluate_command(args):
                               thresholds=thresholds,iou_threshold=args.iou)
     result=evaluate(request)
     payload={"video_verification":video,"evaluation":result.model_dump(mode="json")}
-    _write(args.output,payload)
+    artifact=_write_artifact(args.output,payload)
     print(json.dumps({
         "dataset_id":result.dataset_id,"origin":result.origin,
         "meets_supplied_thresholds":result.meets_supplied_thresholds,
-        "result_sha256":result.result_sha256,"output":str(args.output)
+        "result_sha256":result.result_sha256,"artifact_sha256":artifact,"output":str(args.output)
     },sort_keys=True))
     return 0 if result.meets_supplied_thresholds else 3
 
@@ -47,6 +77,21 @@ def calibration_command(args):
 def main(argv=None):
     parser=argparse.ArgumentParser(prog="si-validation")
     sub=parser.add_subparsers(dest="command",required=True)
+
+    inspect=sub.add_parser("inspect-video")
+    inspect.add_argument("--video",required=True)
+    inspect.add_argument("--output",required=True)
+    inspect.set_defaults(handler=inspect_command)
+
+    run=sub.add_parser("run-case")
+    run.add_argument("--manifest",required=True)
+    run.add_argument("--video",required=True)
+    run.add_argument("--model-spec",required=True)
+    run.add_argument("--model-root",required=True)
+    run.add_argument("--geometry",required=True)
+    run.add_argument("--output",required=True)
+    run.set_defaults(handler=run_case_command)
+
     ev=sub.add_parser("evaluate")
     ev.add_argument("--manifest",required=True)
     ev.add_argument("--ground-truth",required=True)
@@ -56,9 +101,11 @@ def main(argv=None):
     ev.add_argument("--output",required=True)
     ev.add_argument("--iou",type=float,default=.5)
     ev.set_defaults(handler=evaluate_command)
+
     cal=sub.add_parser("calibration")
     cal.add_argument("--input",required=True)
     cal.set_defaults(handler=calibration_command)
+
     args=parser.parse_args(argv)
     return args.handler(args)
 

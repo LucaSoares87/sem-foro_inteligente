@@ -5,6 +5,7 @@ import cv2
 from src.validation.contracts import DatasetManifest
 
 MAX_JSON_BYTES=64*1024*1024
+VIDEO_SUFFIXES={".avi",".mp4",".mkv",".mov"}
 
 def sha256_file(path):
     digest=hashlib.sha256()
@@ -47,6 +48,38 @@ def verify_video(manifest: DatasetManifest,path,capture_factory=cv2.VideoCapture
     return {
         "sha256":manifest.video_sha256,"width":width,"height":height,
         "fps":fps,"frame_count":frame_count,"decoder":"opencv"
+    }
+
+def inspect_video(path,capture_factory=cv2.VideoCapture):
+    path=Path(path)
+    if not path.is_file() or path.suffix.lower() not in VIDEO_SUFFIXES:
+        raise ValueError("invalid video artifact")
+    capture=capture_factory(str(path))
+    decoded=0
+    width=height=0
+    fps=0.0
+    try:
+        if not capture.isOpened():
+            raise ValueError("video not decodable")
+        width=int(round(capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        height=int(round(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        fps=float(capture.get(cv2.CAP_PROP_FPS))
+        if width<=0 or height<=0 or fps<=0:
+            raise ValueError("invalid video metadata")
+        while True:
+            ok,frame=capture.read()
+            if not ok:
+                break
+            if frame is None or frame.shape[1]!=width or frame.shape[0]!=height:
+                raise ValueError("video resolution drift")
+            decoded+=1
+    finally:
+        capture.release()
+    if decoded<1:
+        raise ValueError("video has no decodable frames")
+    return {
+        "filename":path.name,"sha256":sha256_file(path),"width":width,"height":height,
+        "fps":fps,"frame_count":decoded,"duration_seconds":decoded/fps,"decoder":"opencv"
     }
 
 def canonical_json(value):
