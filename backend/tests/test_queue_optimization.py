@@ -173,6 +173,14 @@ def test_dynamic_x_minor_first_major_first_and_abstention_are_deterministic():
     assert low.reason=="insufficient_observation_confidence"
     assert low.preferred_in_simulation=="abstain"
 
+def test_empty_intersection_has_no_material_advantage():
+    empty=evaluate(snapshot((
+        approach("A","GA",0,0,.4,10),
+        approach("B","GB",0,0,.4,10))))
+    assert empty.preferred_in_simulation=="no_material_advantage"
+    assert empty.reason=="no_material_advantage"
+    assert empty.dynamic_x_safe_vehicles==0
+
 def test_optimizer_requires_exactly_two_explicit_service_groups():
     one=evaluate(snapshot((approach("A","GA",3,.1,.4,10),)))
     assert one.reason=="requires_two_service_groups"

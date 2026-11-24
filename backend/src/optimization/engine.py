@@ -101,7 +101,8 @@ def _result(snapshot,state,reason,preferred,major=None,minor=None,x=None,clear=N
     payload={
         "algorithm":"dynamic_clear_first_v1","source_id":snapshot.source_id,
         "intersection_code":snapshot.intersection_code,"frame_sequence":snapshot.frame_sequence,
-        "queue_epoch":str(snapshot.queue_epoch),
+        "queue_epoch":str(snapshot.queue_epoch),"geometry_sha256":snapshot.geometry_sha256,
+        "model_sha256":snapshot.model_sha256,"data_origin":snapshot.data_origin,
         "approaches":[a.model_dump(mode="json") for a in snapshot.approaches]
     }
     state_sha=fingerprint(payload)
@@ -133,6 +134,10 @@ def evaluate(snapshot):
     major,minor=_major_minor(groups)
     if min(major.observation_confidence,minor.observation_confidence)<MINIMUM_CONFIDENCE:
         return _result(snapshot,"abstain","insufficient_observation_confidence","abstain",major,minor)
+    if (major.queue_length+minor.queue_length==0 and
+            major.arrival_rate_vps+minor.arrival_rate_vps<=1e-9):
+        return _result(snapshot,"simulation_preference","no_material_advantage",
+                       "no_material_advantage",major,minor,0,0.0,True)
     x_safe,clear_time=dynamic_x_safe(minor,major)
     if clear_time is None:
         return _result(snapshot,"simulation_preference","no_net_minor_clearance","major_first",
