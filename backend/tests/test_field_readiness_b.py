@@ -13,7 +13,7 @@ def test_private_html_no_prelabels():
 
 class Response(io.BytesIO):
     def __init__(self,data,start,end,total,status=206,tag='"stable"'):
-        super().__init__(data);self.status=status;self.headers={"Content-Range":f"bytes {start}-{end}/{total}","ETag":tag}
+        super().__init__(data);self.status=status;self.headers={"Content-Range":f"bytes {start}-{end}/{total}","ETag":tag,"Content-Length":str(len(data))}
     def geturl(self):return j.URL
 
 class Client:
@@ -64,3 +64,41 @@ def test_benchmark_denominator_and_unknown():
     assert h.summarize(x,"LAB","fixture",1)["sustained_capture_fps"] is None
     x=rows();x[-1]["capture"]["frames"]=0
     assert h.summarize(x,"LAB","fixture",1)["sustained_capture_fps"] is None
+
+def test_full_partial_import_fixture(tmp_path,monkeypatch):
+    import hashlib
+    buf=io.BytesIO()
+    expected={clip:("fixture:"+clip).encode() for clip in j.CLIPS}
+    with zipfile.ZipFile(buf,"w",compression=zipfile.ZIP_DEFLATED) as z:
+        for clip,raw in expected.items():z.writestr("clips/"+clip+".mp4",raw)
+        z.writestr("unselected.mp4",b"x"*1024)
+    monkeypatch.setattr(j,"read_reference",lambda *args:dict(xml_sha256="a"*64,size=240,width=1280,height=720))
+    receipt=dict(origin="official_jaad_2_0",revision=j.REVISION,video_license="CC BY 4.0",source_url=j.URL,
+                 provenance_ref="synthetic",authorization_ref="synthetic",license_review_ref="synthetic",attribution_ref="synthetic")
+    out=tmp_path/"out";r=j.acquire(receipt,tmp_path,out,Client(buf.getvalue()))
+    assert set(r["clips"])==set(j.CLIPS) and len(list(out.glob("*.mp4")))==3
+    for clip,raw in expected.items():
+        assert (out/(clip+".mp4")).read_bytes()==raw
+        assert r["clips"][clip]["video_sha256"]==hashlib.sha256(raw).hexdigest()
+    assert r["archive_sha256"] is None and r["origin_authenticated"] is False and r["pilot_ready"] is False
+
+def test_exact_body_budget_and_redirect():
+    class BadClient(Client):
+        def open(self,req,timeout):
+            r=super().open(req,timeout)
+            r.headers["Content-Length"]="999"
+            return r
+    with pytest.raises(ValueError):j.RangeFile(BadClient(b"abcd"))
+    class RedirectClient(Client):
+        def open(self,req,timeout):
+            r=super().open(req,timeout)
+            r.geturl=lambda:"https://invalid.example/"
+            return r
+    with pytest.raises(ValueError):j.RangeFile(RedirectClient(b"abcd"))
+    r=j.RangeFile(Client(b"abcd"),budget=2);assert r.read(1)==b"a" and r.transferred==2
+    with pytest.raises(ValueError):r.read(1)
+
+def test_unknown_state_is_not_fabricated():
+    payload={"live_gateway":{"physical_actuation":False,"operational_decision":"abstain","sources":[{"source_id":"LAB","observation":"invalid"}]},
+             "vision":{"sources":[]}}
+    with pytest.raises(ValueError):h.snapshot(payload,"LAB")

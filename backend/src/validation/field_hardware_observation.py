@@ -20,6 +20,7 @@ def snapshot(payload,source):
     g=payload["live_gateway"];require(g.get("physical_actuation") is False and g.get("operational_decision")=="abstain","unsafe scope")
     rows=[x for x in g["sources"] if x["source_id"]==source];require(len(rows)==1,"source unavailable")
     x=rows[0];v=payload["vision"];ys=[y for y in v["sources"] if y["source_id"]==source];require(len(ys)<=1,"ambiguous inference")
+    require(x.get("observation") in ("recent_frames","unknown"),"invalid observation state")
     y=ys[0] if ys else {};recent=x["observation"]=="recent_frames"
     return {"recent":recent,"frames":counter(x.get("process_observed_frames")),"restarts":counter(x.get("supervisor_restarts")),
         "session_overwrites":counter(x.get("session_buffer_overwrites")),"decode_receive_ms":metric(x.get("decode_to_receive_ms")) if recent else None,

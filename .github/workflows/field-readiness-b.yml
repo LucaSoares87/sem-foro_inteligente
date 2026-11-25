@@ -4,6 +4,7 @@ on:
     paths:
       - 'backend/src/validation/field_*'
       - 'backend/tests/test_field_readiness_b.py'
+      - 'backend/tests/field_annotation_browser.py'
       - 'docs/field-readiness/**'
       - '.github/workflows/field-readiness-b.yml'
   workflow_dispatch:
@@ -35,4 +36,29 @@ jobs:
         with:
           name: field-readiness-b-tests
           path: /tmp/fr-b/
+          retention-days: 30
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies and Chromium
+        run: |
+          python -m pip install -r requirements-dev.txt playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Real Chromium synthetic annotation rehearsal
+        run: PYTHONPATH=. python tests/field_annotation_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-readiness-b-browser
+          path: /tmp/fr-b-browser/
           retention-days: 30

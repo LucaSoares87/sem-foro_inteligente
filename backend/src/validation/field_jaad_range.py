@@ -33,7 +33,8 @@ class RangeFile(io.RawIOBase):
                     and r.headers.get("Content-Encoding","identity")=="identity","invalid range or strong validator")
             require(self.size is None or (self.size==total and self.etag==tag),"archive identity changed")
             self.size=total;self.etag=tag
-            raw=r.read(n+1);self.transferred+=len(raw)
+            require(r.headers.get("Content-Length")==str(n),"exact response length header required")
+            raw=r.read(n);self.transferred+=len(raw)
             require(len(raw)==n and self.transferred<=self.budget,"invalid response length")
             return raw
     def seekable(self):return True
