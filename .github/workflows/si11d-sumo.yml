@@ -1,0 +1,78 @@
+name: SI-11D SUMO independent
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/si11d_sumo.py'
+      - 'backend/tests/test_si11d_sumo.py'
+      - '.github/workflows/si11d-sumo.yml'
+      - 'docs/si11/sumo-protocol.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  microscopic-study:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SI11D_SUMO_REQUIRED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing research runtime and fixed SUMO release
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --only-binary=:all: eclipse-sumo==1.24.0 libsumo==1.24.0 sumolib==1.24.0 traci==1.24.0
+          python -c "import sumo; print('SUMO_HOME='+sumo.SUMO_HOME)" >> "$GITHUB_ENV"
+      - name: Check executable and package versions
+        run: |
+          set -euo pipefail
+          sumo --version | head -n 1
+          netconvert --version | head -n 1
+          python -c "from src.benchmarking.si11d_sumo import ensure_version; ensure_version()"
+          mkdir -p /tmp/si11d-results
+          python -m pip freeze > /tmp/si11d-results/environment.txt
+      - name: Real SUMO repeatability smoke and prior scientific regression
+        run: python -m pytest -q tests/test_si11d_sumo.py tests/test_si11c_predictive_x.py tests/test_si11b_robust_x.py tests/test_si11_counterfactual.py
+      - name: Execute preregistered microscopic trajectories
+        run: python -m src.benchmarking.si11d_sumo --output /tmp/si11d-results/sumo-study.json
+      - name: Verify complete evidence and non-promotion
+        run: |
+          python - <<'PY'
+          import json
+          from src.archive.store import fingerprint
+          d=json.load(open('/tmp/si11d-results/sumo-study.json'))
+          b=dict(d); sha=b.pop('result_sha256')
+          assert sha==fingerprint(b)
+          assert d['scope']=='synthetic_microscopic_sumo_not_field'
+          assert d['sumo_version']=='1.24.0' and d['sumo_validation']=='EXECUTED_SYNTHETIC'
+          assert d['seeds']==list(range(5000,5004))
+          assert len(d['cases'])==32
+          assert sum(len(c['metrics']) for c in d['cases'])==128
+          assert sum(len(m['plans']) for c in d['cases'] for m in c['metrics'].values())==512
+          assert d['low_confidence_abstention_verified']
+          assert d['research_gate_passed']==all(c['all_research_gates_met'] for c in d['cohorts'].values())
+          assert all(d[k] is False for k in ('candidate_promoted','x_validated_for_real_traffic','commercial_demo_authorized','operationally_validated','physical_actuation'))
+          for c in d['cases']:
+              for m in c['metrics'].values():
+                  assert m['runtime_version'].split()[-1]=='1.24.0'
+                  assert m['scheduled']==c['scheduled']==m['inserted']+m['uninserted']
+                  assert m['inserted']==m['departed_network']+m['remaining_network']
+                  assert sum(m['green_ticks'])==208 and min(m['green_ticks'])>=48
+          print(json.dumps({'research_gate_passed':d['research_gate_passed'],'cohorts':d['cohorts']},indent=2))
+          PY
+      - name: Preserve microscopic aggregate evidence and environment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si11d-sumo-evidence
+          path: /tmp/si11d-results/
+          if-no-files-found: warn
+          retention-days: 30
