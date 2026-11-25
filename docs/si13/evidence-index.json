@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "base_commit": "1264056534d2c11fb1d6f43f789d7b29bac71f91",
+  "scope": "historical_research_archive_not_field",
+  "archive_name": "SI13-acervo-historico-verificado.zip",
+  "archive_sha256": "4e87a43db0e729c052ba21e14216fc6a992014cf54d24776c77894768345fa10",
+  "field_approval": false,
+  "physical_actuation": false,
+  "files": [
+    {
+      "filename": "si09d-preliminary-aggregate-evidence.zip",
+      "artifact_id": 14967459143,
+      "sha256": "95ae9c26a2dd5ad11b9b3e35e5151af9ee2d27b6d9e791513385dc5863cb155a"
+    },
+    {
+      "filename": "si09e-paired-aggregate-evidence.zip",
+      "artifact_id": 14974683818,
+      "sha256": "459ab1ed87f4677bef9f71e2cadc474c2596c5bc05200ddf2df640d73c007c7a"
+    },
+    {
+      "filename": "si09f-blind-morning_0708.zip",
+      "artifact_id": 14976926728,
+      "sha256": "fac96e38e9ff83147cb3abf579f4f746226c9ff96df3f0566df1807efe9e540c"
+    },
+    {
+      "filename": "si09f-blind-morning_1108.zip",
+      "artifact_id": 14976786903,
+      "sha256": "d25935cb257d9a3744aa1bca8acb112497f76a92ee808d16ffb96b6334cf79f1"
+    },
+    {
+      "filename": "si09f-evidence-morning_0708.zip",
+      "artifact_id": 14976248641,
+      "sha256": "0a120cc8cf2fe1fcc11a925f84feac71dd4806e542397adf2e0fb0b68fb0d7b1"
+    },
+    {
+      "filename": "si09f-evidence-morning_1108.zip",
+      "artifact_id": 14976724021,
+      "sha256": "2b4a7211112414eaee1cc0c666d0bf12bfc3ef9be973e1299ed6729d79ecd7fc"
+    },
+    {
+      "filename": "si10-cpu-aggregate-evidence.zip",
+      "artifact_id": 14976614740,
+      "sha256": "b97db81df1cd2e3f43ab191385f47581dec436f0f2b4d7c69dc5d39f8656a3da"
+    },
+    {
+      "filename": "si10b-shadow-load-evidence.zip",
+      "artifact_id": 14977628962,
+      "sha256": "c82046ef2e0a48618f90cd06497f683f2404ab56007754e833c9a8680e2b5355"
+    },
+    {
+      "filename": "si11-synthetic-counterfactual-evidence.zip",
+      "artifact_id": 14978717511,
+      "sha256": "31784467204530ae4579dffc3704e41c597345e6ba32166547d04082f15f12fc"
+    },
+    {
+      "filename": "si11b-robust-x-evidence.zip",
+      "artifact_id": 14977858569,
+      "sha256": "7306f8880b9ef51570f586ed1128c3fad598635072ecd2ad9e276ee257958e76"
+    },
+    {
+      "filename": "si11c-predictive-x-evidence.zip",
+      "artifact_id": 14978819967,
+      "sha256": "2a25e3f409cccf161237097c455beae9458818095dc08294917edcbcae3c7aa0"
+    },
+    {
+      "filename": "si11d-sumo-evidence.zip",
+      "artifact_id": 14979908461,
+      "sha256": "b2356669747162a8c05a84aadf014b5e7651bc5b0af99812e5578a8e3f69c23a"
+    },
+    {
+      "filename": "si12-browser-evidence.zip",
+      "artifact_id": 14980793793,
+      "sha256": "9d4bbdbd17cc126f8045ef7016f8c99df984c967b31f1d39f7a1c31c50bf45b6"
+    },
+    {
+      "filename": "yolox-s-verified-model.zip",
+      "artifact_id": 14956809807,
+      "sha256": "28b2c4dee915e158bd11975f8633308bef332ec94832e6727fb6a1527e13a246"
+    }
+  ]
+}
