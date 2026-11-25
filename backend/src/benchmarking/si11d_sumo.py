@@ -1,5 +1,6 @@
 """Isolated microscopic research. libsumo is in-process and never connects to a controller."""
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -133,7 +134,7 @@ def ensure_version():
     return libsumo
 
 
-def trajectory(api,network,routes,rows,rates,seed,policy):
+def trajectory(api,network,routes,rows,rates,seed,policy,*,select_fn=select):
     planned={vid:(t,g) for t,g,vid in rows}
     inserted=set(); arrived=set(); wait={}; scheduled=set()
     ids_by_time={}
@@ -167,7 +168,7 @@ def trajectory(api,network,routes,rows,rates,seed,policy):
                 for lane in LANES:
                     halted=[v for v in api.lane.getLastStepVehicleIDs(lane) if api.vehicle.getSpeed(v)<.1]
                     queues.append(deque(sorted((t-int(wait.get(v,0)) for v in halted))))
-                action,reason=select(policy,pair,queues,t)
+                action,reason=select_fn(policy,pair,queues,t)
                 if action is None:
                     fallback+=1
                     action=(t//CYCLE%2,26) # synthetic accounting fallback only
@@ -215,16 +216,21 @@ def trajectory(api,network,routes,rows,rates,seed,policy):
         api.close()
 
 
-def case(api,root,family,seed):
+def canonical_network_sha256(path):
+    """Hash complete XML structure, excluding comments (netconvert generation metadata)."""
+    return hashlib.sha256(ET.canonicalize(from_file=path,with_comments=False).encode('utf-8')).hexdigest()
+
+
+def case(api,root,family,seed,policies=POLICIES,*,select_fn=select,canonical_network=False):
     length,_,_=FAMILIES[family]
     root=Path(root)
     network=build_network(root,length)
     rates,rows=demand(family,seed)
     route=root/"demand.rou.xml"
     write_routes(route,rows)
-    metrics={p:trajectory(api,network,route,rows,rates,seed,p) for p in POLICIES}
+    metrics={p:trajectory(api,network,route,rows,rates,seed,p,select_fn=select_fn) for p in policies}
     return {"family":family,"seed":seed,"nominal_rates":rates,"scheduled":len(rows),
-        "network_sha256":sha256_file(network),"demand_sha256":sha256_file(route),
+        "network_sha256":canonical_network_sha256(network) if canonical_network else sha256_file(network),"demand_sha256":sha256_file(route),
         "metrics":metrics}
 
 

@@ -1,0 +1,53 @@
+name: PIMCAT I1D matched-budget vehicle order study
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_i1d_order_x.py'
+      - 'backend/src/benchmarking/si11d_sumo.py'
+      - 'backend/tests/test_pimcat_i1d_order_x.py'
+      - 'docs/pimcat/i1d-order-x-protocol.md'
+      - '.github/workflows/pimcat-i1d-sumo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  order-study:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SI11D_SUMO_REQUIRED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned runtime
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --only-binary=:all: eclipse-sumo==1.24.0 libsumo==1.24.0 sumolib==1.24.0 traci==1.24.0
+          python -c "import sumo; print('SUMO_HOME='+sumo.SUMO_HOME)" >> "$GITHUB_ENV"
+          mkdir -p /tmp/pimcat-i1d
+          python -m pip freeze > /tmp/pimcat-i1d/environment.txt
+      - name: Run original and new mathematical and microscopic regression
+        run: python -m pytest -q tests/test_pimcat_i1d_order_x.py tests/test_si11d_sumo.py tests/test_si11c_predictive_x.py tests/test_si11b_robust_x.py tests/test_si11_counterfactual.py tests/test_pimcat_midblock.py tests/test_pimcat_local.py --junitxml=/tmp/pimcat-i1d/tests.xml
+      - name: Run preregistered 160 trajectories
+        run: python -m src.benchmarking.pimcat_i1d_order_x --output /tmp/pimcat-i1d/study.json
+      - name: Verify accounting and non-promotion
+        run: |
+          python - <<'PY'
+          import json
+          from src.benchmarking.pimcat_i1d_order_x import verify
+          with open('/tmp/pimcat-i1d/study.json') as f:d=json.load(f)
+          print(json.dumps({"research_gate_passed":verify(d),"decision_reasons":d["overall"]["decision_reasons"]},sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-i1d-evidence
+          path: /tmp/pimcat-i1d/
+          retention-days: 30
