@@ -116,11 +116,13 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/fr-perf-results /tmp/fr-perf-model /tmp/fr-perf-holdouts
           printf '%s\n' "$GITHUB_SHA" > /tmp/fr-perf-results/revision.txt
+          timeout 300s bash -euo pipefail <<'SETUP'
           timeout 120s python -m pip install -r requirements-dev.txt gdown==5.2.0 2>&1 | tee /tmp/fr-perf-results/setup.log
           python -m pip freeze > /tmp/fr-perf-results/environment.txt
           timeout 100s python -m src.vision.model_artifacts --output /tmp/fr-perf-model/yolox_s.onnx --spec-output /tmp/fr-perf-model/spec.json
           timeout 120s gdown 'https://drive.google.com/uc?id=11iEaThdLlOHeIrO53eZUtlyNPu0Irg3X' -O /tmp/fr-perf-holdouts/Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4
           timeout 120s gdown 'https://drive.google.com/uc?id=1ze-CefZz5lwA2cdhXVgVlfndyoPH5H6Q' -O /tmp/fr-perf-holdouts/Bellevue_116th_NE12th__2017-09-11_11-08-33.mp4
+          SETUP
       - name: Execute authorized Phase A only
         working-directory: backend
         run: python -m src.benchmarking.fr_perf_01a --authorize-phase-a --model-spec /tmp/fr-perf-model/spec.json --model-root /tmp/fr-perf-model --holdouts /tmp/fr-perf-holdouts --output /tmp/fr-perf-results
