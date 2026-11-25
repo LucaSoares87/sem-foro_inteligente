@@ -1,3 +1,5 @@
+import PimcatEvidence from '../components/PimcatEvidence.jsx'
+import DailyIntelligence from '../components/DailyIntelligence.jsx'
 import PilotStatus from '../components/PilotStatus.jsx'
 import React, {useMemo} from 'react'
 import ForecastPanel from '../ForecastPanel.jsx'
@@ -77,6 +79,8 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
       ]} /> : <EmptyState title="Nenhuma fonte neste cruzamento" description="O cadastro geográfico pode existir sem câmera associada; o painel não inventa telemetria." />}
     </Panel>
 
+    <DailyIntelligence intersection={selected} enabled={data?.predictive?.state!=='disabled'}/>
+    <PimcatEvidence compact/>
     <HistoryPanel intersection={selected} enabled={data?.predictive?.state !== 'disabled'} />
 
     <QueueOptimizationPanel intersection={selected} />
