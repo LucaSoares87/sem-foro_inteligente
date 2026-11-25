@@ -19,6 +19,28 @@ def distribution(values):
     x=sorted(values)
     return {"count":len(x),"p50":x[math.ceil(.5*len(x))-1],"p95":x[math.ceil(.95*len(x))-1],"max":x[-1]}
 
+def fault_evidence(rows, events):
+    """Derive loss/recovery only from observed samples and actual fault times."""
+    result=[]
+    for i,event in enumerate(events):
+        off,on=event["off"],event["on"]
+        until=events[i+1]["off"] if i+1<len(events) else math.inf
+        interval=[r for r in rows if off<=r["t"] and (on is None or r["t"]<on)]
+        unknown=next((r["t"] for r in interval if not r["sources"]["LAB_FAULT"]["recent"]),None)
+        before=[r for r in rows if on is not None and r["t"]<on]
+        baseline=before[-1]["sources"]["LAB_FAULT"]["frames"] if before else None
+        recovery=None
+        if unknown is not None and on is not None and baseline is not None:
+            recovery=next((r["t"] for r in rows if on<=r["t"]<until
+                and r["sources"]["LAB_FAULT"]["recent"]
+                and r["sources"]["LAB_FAULT"]["frames"]>baseline),None)
+        result.append({"off":off,"on":on,"unknown_seen":unknown is not None,
+                       "unknown_at":unknown,"baseline_frames":baseline,
+                       "recovery_at":recovery,
+                       "recovery_seconds":recovery-on if recovery is not None else None})
+    return result
+
+
 def summarize(rows,events,profile,elapsed,cleanup):
     duration,windows=PROFILES[profile]
     result={}
@@ -38,7 +60,10 @@ def summarize(rows,events,profile,elapsed,cleanup):
             "sampling_gap":bool(gaps) and max(gaps)<=3,
             "control_recent":result["LAB_CONTROL"]["recent_share"]>=.95,
             "capture_observed":all(v["frames_delta"]>0 and v["fps"] and v["decode_receive_ms"] and v["monotonic_frames"] for v in result.values()),
-            "fault_recovery":len(events)==len(windows) and all(e["unknown_seen"] and e["recovery_seconds"] is not None and 0<=e["recovery_seconds"]<=45 for e in events),
+            "fault_recovery":len(events)==len(windows) and events==fault_evidence(rows,events)
+            and all(e["on"] is not None and a<=e["off"]<=a+3 and b<=e["on"]<=b+3
+                    and e["unknown_seen"] and e["recovery_seconds"] is not None
+                    and 0<=e["recovery_seconds"]<=45 for e,(a,b) in zip(events,windows)),
             "cleanup":cleanup}
     return result,checks
 
@@ -76,7 +101,7 @@ async def run(profile,root):
             for index,(off,on) in enumerate(windows):
                 if t>=off and len(events)==index:
                     await terminate(publishers["LAB_FAULT"]);publishers["LAB_FAULT"]=None
-                    events.append({"off":monotonic()-start,"on":None,"unknown_seen":False,"recovery_seconds":None,"baseline_frames":manager.gateway_status()["sources"][1]["process_observed_frames"]})
+                    events.append({"off":monotonic()-start,"on":None})
                 if index<len(events) and t>=on and events[index]["on"] is None:
                     publishers["LAB_FAULT"]=publisher("LAB_FAULT")
                     events[index]["on"]=monotonic()-start
@@ -88,11 +113,6 @@ async def run(profile,root):
                 current[k]={"recent":recent,"frames":v["process_observed_frames"],"fps":v["measured_fps"],
                             "latency":v["decode_to_receive_ms"],"restarts":v["supervisor_restarts"],"age":v["last_frame_age_seconds"]}
             t=monotonic()-start
-            if events:
-                ev=events[-1];f=current["LAB_FAULT"]
-                if ev["on"] is None and not f["recent"]:ev["unknown_seen"]=True
-                if ev["on"] is not None and ev["recovery_seconds"] is None and f["recent"] and f["frames"]>ev["baseline_frames"]:
-                    ev["recovery_seconds"]=t-ev["on"]
             rows.append({"t":t,"sources":current})
             if any(p is not None and p.poll() is not None for p in publishers.values()):raise RuntimeError("publisher_exited")
             next_sample+=1
@@ -106,6 +126,7 @@ async def run(profile,root):
         await manager.shutdown()
         for p in publishers.values():await terminate(p)
         cleanup=manager.supervisor_task is None and manager.status()["active"]==0 and all(p is None or p.poll() is not None for p in publishers.values())
+    events=fault_evidence(rows,events)
     summary,checks=summarize(rows,events,profile,elapsed,cleanup)
     report={"scope":"synthetic_loopback_rtsp_not_field","profile":profile,"elapsed_seconds":elapsed,"samples":rows,
             "events":events,"summary":summary,"checks":checks,"error_type":failure,
@@ -122,6 +143,7 @@ def verify(report):
     r=dict(report);h=r.pop("result_sha256");assert fingerprint(r)==h
     assert r["scope"]=="synthetic_loopback_rtsp_not_field"
     summary,checks=summarize(r["samples"],r["events"],r["profile"],r["elapsed_seconds"],r["checks"]["cleanup"])
+    assert r["events"]==fault_evidence(r["samples"],r["events"])
     assert r["summary"]==summary and r["checks"]==checks
     assert r["technical_gate_passed"]==(r["error_type"] is None and all(checks.values()))
     assert r["operational_decision"]=="abstain" and all(r[k] is False for k in ("physical_actuation","operationally_validated","commercial_demo_authorized","candidate_promoted","inference_measured"))

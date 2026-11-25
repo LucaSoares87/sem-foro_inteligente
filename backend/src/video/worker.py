@@ -27,6 +27,10 @@ def run(config):
         if kind != "file":
             capture.set(cv2.CAP_PROP_BUFFERSIZE,1)
         sequence = 0
+        # RTSP must drain the source at its native cadence. Limit emitted JPEGs,
+        # not reads: sleeping between reads accumulates stale decoded frames.
+        next_emit_ns = None
+        period_ns = max(1, round(1_000_000_000 / fps))
         while True:
             start = time.monotonic()
             ok, frame = capture.read()
@@ -38,6 +42,11 @@ def run(config):
             height,width = frame.shape[:2]
             if not width or not height:
                 return 3
+            if kind == "rtsp":
+                if next_emit_ns is not None and timestamp < next_emit_ns:
+                    continue
+                # Never replay missed emission slots as a burst.
+                next_emit_ns = timestamp + period_ns
             scale = min(1,MAX_WIDTH/width,MAX_HEIGHT/height)
             if scale<1:
                 frame = cv2.resize(frame,(max(1,int(width*scale)),max(1,int(height*scale))),interpolation=cv2.INTER_AREA)
@@ -49,7 +58,8 @@ def run(config):
             sys.stdout.buffer.write(HEADER.pack(width,height,sequence,timestamp,encoded.nbytes))
             sys.stdout.buffer.write(encoded.tobytes())
             sys.stdout.buffer.flush()
-            time.sleep(max(0,1/fps-(time.monotonic()-start)))
+            if kind != "rtsp":
+                time.sleep(max(0,1/fps-(time.monotonic()-start)))
     finally:
         capture.release()
 
