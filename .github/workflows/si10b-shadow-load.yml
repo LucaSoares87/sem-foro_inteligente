@@ -1,9 +1,14 @@
-name: FR-PERF-02B-PREFLIGHT-R (isolated)
+name: FR-PERF-02C screening (isolated)
 on:
   workflow_dispatch:
     inputs:
-      authorize_preflight:
-        description: 'Authorize one technical preflight only (15 job-min); no Bellevue'
+      authorize_screening:
+        description: 'Authorize one FR-PERF-02C screening, maximum 25 job-min'
+        type: boolean
+        required: true
+        default: false
+      authorize_holdout_transfer:
+        description: 'Authorize only the two pinned Bellevue holdouts after fixtures pass'
         type: boolean
         required: true
         default: false
@@ -11,8 +16,50 @@ permissions:
   contents: read
   actions: read
 jobs:
-  preflight:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/research/fr-perf-02b-preflight-r' && inputs.authorize_preflight == true && github.run_attempt == 1
+  fixtures:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/research/fr-perf-02c-screening' && inputs.authorize_screening == true && inputs.authorize_holdout_transfer == true && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.16'
+      - name: Verify and unpack research-only overlays
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fr02c-fixture-evidence
+          printf '%s\n' "$GITHUB_SHA" > /tmp/fr02c-fixture-evidence/revision.txt
+          echo '52b5fb87ac2dc76a0899fcd9e65881a2f3776048d6d578fc010c70081dea9ef9  research/fr-perf-02b/overlay.tar.gz' | sha256sum -c -
+          tar -xzf research/fr-perf-02b/overlay.tar.gz --keep-old-files
+          sha256sum -c research/fr-perf-02b/overlay.sha256
+          cat research/fr-perf-02c/overlay.part-* > /tmp/fr02c-fixture-overlay.tar.gz
+          echo '81b6deb3b63a6f6dbf0c08d562f2cbcf0b9441a8f5c3392809b0ab6cc780529a  /tmp/fr02c-fixture-overlay.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/fr02c-fixture-overlay.tar.gz --keep-old-files
+          sha256sum -c research/fr-perf-02c/overlay.sha256
+          git diff --exit-code
+      - name: Install pinned isolated environments and retrieve existing model only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: timeout 300s bash research/fr-perf-02c/setup.sh /tmp/fr02c-fixture /tmp/fr02c-fixture-evidence
+      - name: Mandatory regression fixtures
+        run: PYTHONPATH=backend:scripts timeout 60s /tmp/fr02c-fixture/infer/bin/python -m pytest -q backend/tests/test_fr_perf_02b.py backend/tests/test_fr_perf_02c.py scripts/test_lock_from_report.py --junitxml=/tmp/fr02c-fixture-evidence/fixtures.xml
+      - name: Mandatory real plain and instrumented worker fixtures (no Bellevue)
+        working-directory: backend
+        run: timeout 120s /tmp/fr02c-fixture/infer/bin/python -m src.benchmarking.fr_perf_02c_fixtures --lock ../research/fr-perf-02c/requirements.lock --acquisition-lock ../research/fr-perf-02c/acquisition.lock --inputs ../research/fr-perf-02c/input-hashes.json --junit /tmp/fr02c-fixture-evidence/fixtures.xml --model-spec /tmp/fr02c-fixture/model/yolox_s.model-spec.json --model-root /tmp/fr02c-fixture/model --output /tmp/fr02c-fixture-evidence/fixture-proof.json
+      - name: Preserve fixture evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fr-perf-02c-fixtures
+          path: /tmp/fr02c-fixture-evidence/
+          if-no-files-found: error
+          retention-days: 30
+  screening:
+    needs: fixtures
+    if: needs.fixtures.result == 'success' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/research/fr-perf-02c-screening' && inputs.authorize_screening == true && inputs.authorize_holdout_transfer == true && github.run_attempt == 1
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -21,60 +68,44 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Verify and unpack exact local research overlay
+          python-version: '3.12.16'
+      - name: Verify and unpack research-only overlays
         run: |
           set -euo pipefail
-          mkdir -p /tmp/fr02-evidence /tmp/fr02-model
-          echo "$GITHUB_SHA" > /tmp/fr02-evidence/revision.txt
+          mkdir -p /tmp/fr02c-evidence
+          printf '%s\n' "$GITHUB_SHA" > /tmp/fr02c-evidence/revision.txt
           echo '52b5fb87ac2dc76a0899fcd9e65881a2f3776048d6d578fc010c70081dea9ef9  research/fr-perf-02b/overlay.tar.gz' | sha256sum -c -
           tar -xzf research/fr-perf-02b/overlay.tar.gz --keep-old-files
           sha256sum -c research/fr-perf-02b/overlay.sha256
+          cat research/fr-perf-02c/overlay.part-* > /tmp/fr02c-screen-overlay.tar.gz
+          echo '81b6deb3b63a6f6dbf0c08d562f2cbcf0b9441a8f5c3392809b0ab6cc780529a  /tmp/fr02c-screen-overlay.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/fr02c-screen-overlay.tar.gz --keep-old-files
+          sha256sum -c research/fr-perf-02c/overlay.sha256
           git diff --exit-code
-      - name: Resolve, hash-lock and install exact target wheelhouse
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m venv /tmp/fr02-venv
-          timeout 360s bash -euo pipefail <<'SETUP'
-          export PATH=/tmp/fr02-venv/bin:$PATH
-          export PIP_CONFIG_FILE=/dev/null
-          python -m pip --isolated install --dry-run --ignore-installed --only-binary=:all: --index-url https://pypi.org/simple --report /tmp/fr02-evidence/resolve.json -r backend/requirements-dev.txt onnxruntime==1.22.0
-          python scripts/lock_from_report.py /tmp/fr02-evidence/resolve.json /tmp/fr02-evidence/locked.txt
-          python -m pip --isolated download --only-binary=:all: --index-url https://pypi.org/simple --require-hashes -r /tmp/fr02-evidence/locked.txt -d /tmp/fr02-wheelhouse
-          (cd /tmp/fr02-wheelhouse && sha256sum *.whl) > /tmp/fr02-evidence/wheels.sha256
-          python -m pip --isolated install --no-index --find-links /tmp/fr02-wheelhouse --require-hashes -r /tmp/fr02-evidence/locked.txt
-          python -m pip check | tee /tmp/fr02-evidence/pip-check.txt
-          python -m pip freeze > /tmp/fr02-evidence/environment.txt
-          python -VV > /tmp/fr02-evidence/python.txt
-          python -m pip --version > /tmp/fr02-evidence/pip-version.txt
-          SETUP
-      - name: Retrieve existing verified model artifact only
+      - name: Retrieve same-run fixture proof
+        uses: actions/download-artifact@v4
+        with:
+          name: fr-perf-02c-fixtures
+          path: /tmp/fr02c-proof
+      - name: Prepare environment, verify gate, then acquire only pinned holdouts
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --location --max-time 90 -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/15046357887/zip" -o /tmp/fr02-model.zip
-          echo '0ccfef84a0444c08f6d5ec0976d09d7b73e631a8b642cc90eb06a31432ef4bf6  /tmp/fr02-model.zip' | sha256sum -c - | tee /tmp/fr02-evidence/model-zip-check.txt
-          unzip -t /tmp/fr02-model.zip
-          unzip -q /tmp/fr02-model.zip yolox_s.onnx yolox_s.model-spec.json LICENSE SHA256SUMS -d /tmp/fr02-model
-          (cd /tmp/fr02-model && echo 'c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063  yolox_s.onnx' | sha256sum -c -) | tee /tmp/fr02-evidence/model-check.txt
-      - name: Existing research fixtures
-        run: |
-          PYTHONPATH=backend:scripts timeout 60s /tmp/fr02-venv/bin/python -m pytest -q backend/tests/test_fr_perf_02b.py scripts/test_lock_from_report.py --junitxml=/tmp/fr02-evidence/fixtures.xml
-      - name: Synthetic model smoke only
-        run: |
-          PYTHONPATH=backend timeout 60s /tmp/fr02-venv/bin/python scripts/preflight_model.py --model-spec /tmp/fr02-model/yolox_s.model-spec.json --model-root /tmp/fr02-model --output /tmp/fr02-evidence/model-smoke.json
-          /tmp/fr02-venv/bin/python -c "import json; d=json.load(open('/tmp/fr02-evidence/model-smoke.json')); assert d['all_match'] and d['screening_released'] is False"
-      - name: Real IPC and paired instrumentation overhead
+          timeout 300s bash -euo pipefail <<'SETUP'
+          bash research/fr-perf-02c/setup.sh /tmp/fr02c-screen /tmp/fr02c-evidence
+          bash research/fr-perf-02c/screening.sh
+          SETUP
+      - name: Run only the preregistered screening
         working-directory: backend
-        run: |
-          timeout 240s /tmp/fr02-venv/bin/python -m src.benchmarking.fr_perf_02b_preflight_r --model-spec /tmp/fr02-model/yolox_s.model-spec.json --model-root /tmp/fr02-model --output /tmp/fr02-evidence
-      - name: Preserve technical evidence including failures
+        run: timeout 480s /tmp/fr02c-screen/infer/bin/python -m src.benchmarking.fr_perf_02c --authorize-screening --authorize-holdout-transfer --lock ../research/fr-perf-02c/requirements.lock --acquisition-lock ../research/fr-perf-02c/acquisition.lock --inputs ../research/fr-perf-02c/input-hashes.json --fixture-proof /tmp/fr02c-proof/fixture-proof.json --model-spec /tmp/fr02c-screen/model/yolox_s.model-spec.json --model-root /tmp/fr02c-screen/model --holdouts /tmp/fr02c-screen/holdouts --output /tmp/fr02c-evidence/results
+      - name: Remove private inputs
+        if: always()
+        run: rm -rf /tmp/fr02c-screen/holdouts /tmp/fr02c-screen/model /tmp/fr02c-screen/model.zip
+      - name: Preserve screening evidence including negative and partial outcomes
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fr-perf-02b-preflight-r-evidence
-          path: /tmp/fr02-evidence/
+          name: fr-perf-02c-evidence
+          path: /tmp/fr02c-evidence/
           if-no-files-found: error
           retention-days: 30
