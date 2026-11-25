@@ -20,6 +20,7 @@ class SourceSpec(BaseModel):
     kind: Literal["file", "webcam", "rtsp"]
     locator: SecretStr
     target_fps: int = Field(default=10, strict=True, ge=1, le=30)
+    continuous: bool = Field(default=False, strict=True)
     reconnect_attempts: int = Field(default=3, strict=True, ge=0, le=5)
     data_origin: Literal["local_authorized","external_real_replay","synthetic_demo"] = "local_authorized"
     commercial_demo_authorized: bool = False
@@ -42,6 +43,8 @@ class SourceSpec(BaseModel):
             if parsed.scheme not in {"rtsp","rtsps"} or not parsed.hostname or parsed.fragment:
                 raise ValueError("invalid RTSP source")
             _ = parsed.port
+        if self.continuous and (self.kind != "rtsp" or not self.authorization_ref or self.data_origin != "local_authorized"):
+            raise ValueError("continuous source requires authorized live RTSP registry entry")
         if self.commercial_demo_authorized and not self.authorization_ref:
             raise ValueError("commercial demo authorization requires reference")
         if self.data_origin == "synthetic_demo" and self.kind != "file":
@@ -67,6 +70,8 @@ def load_sources(raw: str):
             raise ValueError
         sources = [SourceSpec.model_validate(item) for item in values]
         if len({s.source_id for s in sources}) != len(sources):
+            raise ValueError
+        if sum(s.continuous for s in sources)>MAX_ACTIVE:
             raise ValueError
         return tuple(sources)
     except (ValueError, TypeError):

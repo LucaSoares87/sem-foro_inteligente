@@ -185,21 +185,88 @@ class VideoManager:
     def __init__(self,sources,root,spawn=spawn_decoder):
         self.sessions = {s.source_id:VideoSession(s,Path(root),spawn) for s in sources}
         self.closing = False
+        self.desired = {s.source_id for s in sources if s.continuous}
+        self.supervisor_task = None
+        self.supervision = {s.source_id: {"restarts":0,"next":0.,"cooldown":5.,"stable":None,
+            "seen_frames":0,"total_frames":0,"seen_session_task":None} for s in sources if s.continuous}
+
+    def start_supervisor(self):
+        if self.desired and self.supervisor_task is None and not self.closing:
+            self.supervisor_task = asyncio.create_task(self._supervise(),name="video-supervisor")
+
+    def _sample(self,key,now):
+        s=self.sessions[key];m=self.supervision[key]
+        if m["seen_session_task"] is not s.task:
+            m["seen_session_task"]=s.task;m["seen_frames"]=0;m["stable"]=None
+        m["total_frames"]+=max(0,s.frames-m["seen_frames"])
+        m["seen_frames"]=s.frames
+        if s.state=="running" and s.arrivals and now-s.arrivals[-1]<=5:
+            if m["stable"] is None:m["stable"]=now
+            if now-m["stable"]>=30:m["cooldown"]=5.
+        else:m["stable"]=None
+
+    async def _supervise(self):
+        while not self.closing:
+            now=monotonic()
+            for key in sorted(self.supervision):
+                s=self.sessions[key];m=self.supervision[key];self._sample(key,now)
+                if key not in self.desired or s.active() or s.stopping:continue
+                if s.state=="error" and s.error=="invalid_source":continue
+                if s.state in ("error","ended") and not m["next"]:
+                    m["next"]=now+m["cooldown"];m["cooldown"]=min(60.,2*m["cooldown"])
+                if now<m["next"]:continue
+                if sum(v.active() for v in self.sessions.values())>=MAX_ACTIVE:continue
+                if s.task is not None:m["restarts"]+=1
+                s.start();m["next"]=0.
+            await asyncio.sleep(.25)
+
+    def gateway_status(self):
+        now=monotonic();rows=[]
+        for key,s in self.sessions.items():
+            age=(now-s.arrivals[-1]) if s.arrivals else None
+            fresh=s.state=="running" and age is not None and 0<=age<=5
+            m=self.supervision.get(key)
+            if m:self._sample(key,now)
+            rows.append({"source_id":key,"intersection_code":s.spec.intersection_code,"kind":s.spec.kind,
+                "continuous_opt_in":s.spec.continuous,"desired":key in self.desired,
+                "capture_state":s.state,"observation":"recent_frames" if fresh else "unknown",
+                "last_frame_age_seconds":round(age,3) if age is not None else None,
+                "session_frames":s.frames,"session_buffer_overwrites":s.overwritten,
+                "measured_fps":s.status()["measured_fps"] if fresh else None,
+                "decode_to_receive_ms":s.last_delay_ms if fresh else None,
+                "process_observed_frames":m["total_frames"] if m else None,
+                "supervisor_restarts":m["restarts"] if m else None,
+                "retry_in_seconds":max(0,round(m["next"]-now,2)) if m and m["next"] and key in self.desired else None})
+        return {"schema_version":1,"state":"running" if self.supervisor_task and not self.supervisor_task.done() else "idle",
+            "max_active":MAX_ACTIVE,"sources":rows,"scope":"process_capture_only","availability_24h_validated":False,
+            "physical_actuation":False,"operational_decision":"abstain"}
 
     def start(self,source_id):
         session = self.sessions[source_id]
         if self.closing or (not session.active() and sum(s.active() for s in self.sessions.values())>=MAX_ACTIVE):
             raise SourceBusy
+        if source_id in self.supervision:self._sample(source_id,monotonic())
         session.start()
+        if session.spec.continuous:
+            self.desired.add(source_id)
+            self.supervision[source_id]["next"]=0.
+            self.start_supervisor()
         return session.status()
 
     async def stop(self,source_id):
         session = self.sessions[source_id]
+        self.desired.discard(source_id)
+        if source_id in self.supervision:
+            self._sample(source_id,monotonic());self.supervision[source_id]["next"]=0.
         await session.stop()
         return session.status()
 
     async def shutdown(self):
         self.closing = True
+        if self.supervisor_task:
+            self.supervisor_task.cancel()
+            await asyncio.gather(self.supervisor_task,return_exceptions=True)
+            self.supervisor_task=None
         await asyncio.gather(*(s.stop() for s in self.sessions.values()))
 
     def take_latest(self,source_id):

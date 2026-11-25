@@ -1,0 +1,46 @@
+name: PIMCAT H1 local streaming
+on:
+  pull_request:
+    paths:
+      - 'backend/src/video/**'
+      - 'backend/tests/test_pimcat_h1_gateway.py'
+      - 'docs/pimcat/h1-gateway.md'
+      - '.github/workflows/pimcat-h1-gateway.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-stream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PIMCAT_H1_RTSP_REQUIRED: '1'
+      PIMCAT_H1_REPORT: /tmp/pimcat-h1/stream.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test runtime
+        run: |
+          python -m pip install -r backend/requirements-dev.txt
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          mkdir -p /tmp/pimcat-h1
+      - name: Start loopback-only RTSP fixture
+        run: |
+          docker run --rm -d --name pimcat-h1-rtsp -p 127.0.0.1:18554:8554/tcp -e MTX_RTSPTRANSPORTS=tcp bluenviron/mediamtx:1.12.3
+          docker image inspect bluenviron/mediamtx:1.12.3 --format '{{json .RepoDigests}}' > /tmp/pimcat-h1/server-digest.json
+      - name: Decode, interrupt, recover and verify manual stop
+        working-directory: backend
+        run: python -m pytest -q tests/test_video.py tests/test_pimcat_h1_gateway.py --junitxml=/tmp/pimcat-h1/tests.xml
+      - name: Stop fixture
+        if: always()
+        run: docker rm -f pimcat-h1-rtsp || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-h1-evidence
+          path: /tmp/pimcat-h1/
+          retention-days: 30
