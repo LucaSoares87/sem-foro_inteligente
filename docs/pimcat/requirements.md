@@ -46,3 +46,10 @@ Estados: EXISTENTE, PARCIAL, PLANEJADO, BLOCKED/NOT_RUN. Aceite técnico != auto
 | 23 | alternância excessiva | mínimo bloco, contar mudanças | B/C1 |
 | 24 | reinício | preservar estado validado ou desconhecido, requests; recuperação SI-13 anterior não prova multimodal | E/G NOT_RUN |
 | 25 | FPS | comparar 30/15/10/5 com GT e perdas | veicular SI-09 preliminar; C3 BLOCKED |
+
+## Complemento RP-07 — topologia isolada
+| Requisito | Componente | Gate |
+|---|---|---|
+| RP-07 | pimcat_midblock.py (pesquisa) | 86400 amostras sem pedido mantêm preferência veicular; pedido individual registrado; prazo não reinicia; ocupação/clearance, incerteza e obrigações vetam retorno |
+| 26 | travessia isolada sem demanda | ausência confirmada em espera/faixa; sem alternância periódica; C2 SUMO NOT_RUN |
+| 27 | travessia isolada com pedido único e retomada | botoeira/observação, proteção e confirmação de atendimento; C2 SUMO/C3 campo NOT_RUN |

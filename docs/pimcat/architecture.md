@@ -46,3 +46,6 @@ F: relatório diário com agregações reprodutíveis, cobertura, métricas nula
 G: regressão, simulação independente, replay autorizado, browser e aceite humano; piloto mantém sete gates SI-08B e requer evidências multimodais adicionais sem substituir os anteriores. Não confundir pesquisa com controle físico.
 
 Riscos: baixa precisão/frequência, desbalanceamento por modo, oclusão, intenção ambígua, conflito de conversão, relógios e latência, saturação e censura, modelo não calibrado, pesos não validados, dependências de rede, segurança/privacidade. Mitigações: abstain, requests latched, constraints antes de custo, comparação com baselines, hashes, testes adversos, avaliação humana e autorização. Limite de ferramenta: sem câmera, operador ou hardware-alvo; sem prova de campo. Próxima ação executável é B/C1, sem intervenção no produto.
+
+### ADR-PIMCAT-002 — RP-07: travessia isolada
+A topologia de meio de quadra não tem concorrência A/B transversal. Sob ausência confirmada de demanda, faixa livre, pedidos atendidos, proteção concluída e nenhuma obrigação adicional, a preferência experimental é manter o verde veicular sem alternância periódica. Câmera falha não equivale a ausência. Reutilizar Xp e solicitação independente; incluir no C2 SUMO, C3 percepção e D/E coordenação. Ver [regra RP-07](midblock.md). Nenhuma alteração de motores ou gates.
