@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "scope": "archived_synthetic_aggregate_extract",
+  "origin": "synthetic",
+  "candidate_promoted": false,
+  "operationally_validated": false,
+  "physical_actuation": false,
+  "studies": [
+    {
+      "id": "SI-11A",
+      "label": "Contrafactual FIFO",
+      "run": 45518223607,
+      "artifact": 14978717511,
+      "zip_sha256": "31784467204530ae4579dffc3704e41c597345e6ba32166547d04082f15f12fc",
+      "report_sha256": "e8811eb37efcaa327ff834557a4f707d319c3c7a50cd1943550492e3b2d153d4",
+      "cases": 320,
+      "trajectories": 1600,
+      "horizon_seconds": 60,
+      "research_gate_passed": null,
+      "metrics": [
+        {
+          "label": "Área de fila",
+          "unit": "veíc.·s"
+        },
+        {
+          "label": "Veículos atendidos",
+          "unit": "veíc."
+        },
+        {
+          "label": "Exposição crítica",
+          "unit": "veíc.·s"
+        }
+      ],
+      "rows": [
+        {
+          "name": "Fixa A",
+          "values": [
+            1169.35625,
+            26.95625,
+            94.08500000000001
+          ]
+        },
+        {
+          "name": "Fixa B",
+          "values": [
+            1154.053125,
+            27.090625,
+            82.37515625
+          ]
+        },
+        {
+          "name": "Fila dominante",
+          "values": [
+            1296.86875,
+            18.728125,
+            183.66046875
+          ]
+        },
+        {
+          "name": "Fila menor",
+          "values": [
+            1056.515625,
+            31.91875,
+            18.5628125
+          ]
+        },
+        {
+          "name": "Dynamic X",
+          "values": [
+            1072.63125,
+            29.759375,
+            58.025468749999995
+          ]
+        }
+      ],
+      "note": "26 de 160 escolhas pela fila menor ultrapassaram o limite crítico da dominante. Gate binário não definido.",
+      "origin": "synthetic",
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "SI-11B",
+      "label": "Robust X",
+      "run": 45519416610,
+      "artifact": 14977858569,
+      "zip_sha256": "7306f8880b9ef51570f586ed1128c3fad598635072ecd2ad9e276ee257958e76",
+      "report_sha256": "e9568419d95e33d50850f174e453c30e7b18f8d4af6792b26f3fcbb3805240fc",
+      "cases": 640,
+      "trajectories": 3840,
+      "horizon_seconds": 60,
+      "research_gate_passed": false,
+      "metrics": [
+        {
+          "label": "Área de fila",
+          "unit": "veíc.·s"
+        },
+        {
+          "label": "Veículos atendidos",
+          "unit": "veíc."
+        },
+        {
+          "label": "Exposição crítica",
+          "unit": "veíc.·s"
+        }
+      ],
+      "rows": [
+        {
+          "name": "Dynamic X",
+          "values": [
+            952.95625,
+            30.675,
+            31.631406249999998
+          ]
+        },
+        {
+          "name": "Robust X",
+          "values": [
+            1140.36875,
+            23.06875,
+            139.14421875
+          ]
+        }
+      ],
+      "note": "Menos ultrapassagens nas escolhas pela fila menor, mas pior fluidez e exposição global; ambos os grupos reprovaram.",
+      "origin": "synthetic",
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "SI-11C",
+      "label": "Preditivo multiciclo",
+      "run": 45520433030,
+      "artifact": 14978819967,
+      "zip_sha256": "2a25e3f409cccf161237097c455beae9458818095dc08294917edcbcae3c7aa0",
+      "report_sha256": "9396cab8555347b70fc2d962a1d2c0772d2b2046c31fc362d3ea5e7e6603643c",
+      "cases": 320,
+      "trajectories": 1920,
+      "horizon_seconds": 240,
+      "research_gate_passed": false,
+      "metrics": [
+        {
+          "label": "Área de fila",
+          "unit": "veíc.·s"
+        },
+        {
+          "label": "Veículos atendidos",
+          "unit": "veíc."
+        },
+        {
+          "label": "Exposição crítica",
+          "unit": "veíc.·s"
+        }
+      ],
+      "rows": [
+        {
+          "name": "Fixa alternada",
+          "values": [
+            5744.678125,
+            102.959375,
+            1298.5401562499997
+          ]
+        },
+        {
+          "name": "Proporcional",
+          "values": [
+            4108.721875,
+            112.690625,
+            434.42750000000007
+          ]
+        },
+        {
+          "name": "Dynamic X",
+          "values": [
+            5127.41875,
+            104.578125,
+            1200.36171875
+          ]
+        },
+        {
+          "name": "Robust X",
+          "values": [
+            6859.89375,
+            88.6125,
+            2564.914531250001
+          ]
+        },
+        {
+          "name": "Preditivo com X",
+          "values": [
+            4064.96875,
+            112.646875,
+            428.050625
+          ]
+        },
+        {
+          "name": "Preditivo sem X",
+          "values": [
+            4070.609375,
+            112.534375,
+            436.214375
+          ]
+        }
+      ],
+      "note": "Replicação passou; cenários inéditos reprovaram frente à proporcional. Ganho adicional de X pequeno e não generalizado.",
+      "origin": "synthetic",
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "SI-11D",
+      "label": "SUMO 1.24.0",
+      "run": 45521531550,
+      "artifact": 14979908461,
+      "zip_sha256": "b2356669747162a8c05a84aadf014b5e7651bc5b0af99812e5578a8e3f69c23a",
+      "report_sha256": "0dc2b6e1aca564dd90f55c57c9c3712cc6fcb8a697fe38a69cdc1dd8868fa26e",
+      "cases": 32,
+      "trajectories": 128,
+      "horizon_seconds": 240,
+      "research_gate_passed": false,
+      "metrics": [
+        {
+          "label": "Espera parada + inserção pendente",
+          "unit": "veíc.·s"
+        },
+        {
+          "label": "Veículos que saíram da rede",
+          "unit": "veíc."
+        },
+        {
+          "label": "Exposição crítica de ocupação",
+          "unit": "veíc.·s"
+        },
+        {
+          "label": "Não inseridos",
+          "unit": "veíc."
+        }
+      ],
+      "rows": [
+        {
+          "name": "Fixa alternada",
+          "values": [
+            4193.375,
+            70.875,
+            108.42343749999992,
+            17.65625
+          ]
+        },
+        {
+          "name": "Proporcional",
+          "values": [
+            2808.1875,
+            78.59375,
+            40.54999999999998,
+            10.4375
+          ]
+        },
+        {
+          "name": "Preditivo com X",
+          "values": [
+            2935.40625,
+            78.59375,
+            44.86093749999998,
+            11.09375
+          ]
+        },
+        {
+          "name": "Preditivo sem X",
+          "values": [
+            2935.40625,
+            78.59375,
+            44.86093749999998,
+            11.09375
+          ]
+        }
+      ],
+      "note": "Proporcional apresentou menor espera e exposição; com e sem X idênticos. Ambos os grupos reprovaram gates completos. Ocupação inclui veículos em movimento.",
+      "origin": "synthetic",
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    }
+  ]
+}
