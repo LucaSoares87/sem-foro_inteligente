@@ -1,0 +1,74 @@
+name: PIMCAT C2 SUMO multimodal
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_c2_sumo.py'
+      - 'backend/tests/test_pimcat_c2_sumo.py'
+      - 'docs/pimcat/c2-sumo-protocol.md'
+      - '.github/workflows/pimcat-c2-sumo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  microscopic-study:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PIMCAT_C2_SUMO_REQUIRED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing runtime and pinned SUMO
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --only-binary=:all: eclipse-sumo==1.24.0 libsumo==1.24.0 sumolib==1.24.0 traci==1.24.0
+          python -c "import sumo; print('SUMO_HOME='+sumo.SUMO_HOME)" >> "$GITHUB_ENV"
+      - name: Verify version and prepare evidence
+        run: |
+          python -c "from src.benchmarking.si11d_sumo import ensure_version; ensure_version()"
+          mkdir -p /tmp/pimcat-c2
+          python -m pip freeze > /tmp/pimcat-c2/environment.txt
+      - name: Actual SUMO repeatability and previous multimodal regressions
+        run: python -m pytest -q tests/test_pimcat_c2_sumo.py tests/test_pimcat_local.py tests/test_pimcat_midblock.py tests/test_si11c_predictive_x.py
+      - name: Execute preregistered paired study
+        run: python -m src.benchmarking.pimcat_c2_sumo --output /tmp/pimcat-c2/study.json
+      - name: Verify report integrity and scientific boundaries
+        run: |
+          python - <<'PY'
+          import json
+          from src.archive.store import fingerprint
+          d=json.load(open('/tmp/pimcat-c2/study.json'))
+          sha=d.pop('result_sha256')
+          assert fingerprint(d)==sha
+          assert d['scope']=='pimcat_c2_microscopic_synthetic_not_field'
+          assert d['sumo_version']=='1.24.0' and d['sumo_validation']=='EXECUTED_SYNTHETIC'
+          assert d['cases']==32 and d['trajectories']==192 and len(d['rows'])==32
+          assert d['seeds']==list(range(7100,7104))
+          assert d['operational_decision']=='abstain' and d['perception_validation']=='NOT_RUN'
+          assert all(d[k] is False for k in ('candidate_promoted','physical_actuation','operationally_validated','commercial_demo_authorized'))
+          for r in d['rows']:
+              assert r['conflicts_verified'] and len(r['metrics'])==6
+              for m in r['metrics'].values():
+                  assert m['runtime_version'].split()[-1]=='1.24.0'
+                  assert m['vehicles_scheduled']==m['vehicles_exited']+m['vehicles_remaining']+m['vehicles_uninserted']
+                  assert m['pedestrians_scheduled']==m['pedestrians_exited']+m['pedestrians_remaining']+m['pedestrians_uninserted']
+                  assert m['pedestrians_admitted']==m['pedestrians_completed']+m['pedestrians_crossing']
+                  assert not any(m[k] for k in ('conflict_violations','red_entries','colliding_vehicle_events','teleports'))
+          print('Research gates:',json.dumps(d['gates']))
+          PY
+      - name: Archive evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pimcat-c2-sumo-evidence
+          path: /tmp/pimcat-c2/
+          if-no-files-found: warn
+          retention-days: 30
