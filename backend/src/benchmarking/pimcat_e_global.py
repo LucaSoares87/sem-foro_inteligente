@@ -269,7 +269,7 @@ def render_svg(graph,snap,path):
     write_xml(path,root)
 
 
-def trajectory(api,net,meta,graph,route,rows,family,seed,policy):
+def trajectory(api,net,meta,graph,route,rows,family,seed,policy,*,context_fn=network_context,snapshot_ticks=()):
     states={j:State() for j in meta}
     planned={r[2]:r for r in rows};by_time=defaultdict(set)
     for r in rows:by_time[r[0]].add(r[2])
@@ -305,14 +305,14 @@ def trajectory(api,net,meta,graph,route,rows,family,seed,policy):
             for k in active:
                 if road[k] in edge_ids:edge_ids[road[k]].add(k)
             readings={k:Reading(t,len(ids),sum(speed[v]<.1 for v in ids),caps[k],fmean([speed[v] for v in ids]) if ids else 0.) for k,ids in edge_ids.items()}
-            if family=="outage" and seed==9100 and policy=="global_storage" and t in (175,240,305):
+            if (family=="outage" and seed==9100 and policy=="global_storage" and t in (175,240,305)) or t in snapshot_ticks:
                 snapshots.append(snapshot(graph,readings,t,available))
             all_wait=set(requested)-set(admitted);signal_states={}
             blocked_edges={k for k in internal_edges if readings[k].count>=.85*caps[k]}
             for j,m in meta.items():
                 s=states[j];mid=j=="M";ms=m["movements"]
                 local={g:(readings[a],readings[b]) for g,(a,b) in ms.items()}
-                central=network_context(graph,readings,j,t,available)
+                central=context_fn(graph,readings,j,t,available)
                 pids=[k for k in all_wait if planned[k][4]==j];oldest=min((requested[k] for k in pids),default=None)
                 ages={g:max((waits[k] for k in edge_ids[a] if speed[k]<.1),default=0) for g,(a,b) in ms.items()}
                 anticipate=policy=="global_storage" and available
@@ -434,20 +434,20 @@ def trajectory(api,net,meta,graph,route,rows,family,seed,policy):
     finally:api.close()
 
 
-def case(api,root,family,seed,policies=POLICIES):
+def case(api,root,family,seed,policies=POLICIES,*,context_fn=network_context,snapshot_ticks=()):
     net,meta,graph=network(root,family);rows=demand(family,seed,meta,graph)
     route=root/"demand.rou.xml";routes(route,meta,graph,rows)
     return {"family":family,"columns":FAMILIES[family][0],"seed":seed,"nodes":len(meta),"conflicts_verified":True,
             "graph":graph,"network_sha256":hashlib.sha256(ET.canonicalize(from_file=net,with_comments=False).encode()).hexdigest(),
-            "demand_sha256":sha256_file(route),"metrics":{p:trajectory(api,net,meta,graph,route,rows,family,seed,p) for p in policies}}
+            "demand_sha256":sha256_file(route),"metrics":{p:trajectory(api,net,meta,graph,route,rows,family,seed,p,context_fn=context_fn,snapshot_ticks=snapshot_ticks) for p in policies}}
 
 
 FIELDS=("person_area","vehicle_area","pedestrian_area","vehicle_exited","vehicle_uninserted","pedestrian_completed",
     "vehicle_max_wait","pedestrian_max_wait","mean_travel_seconds","mean_stops","speed_cv","mean_speed_mps","critical_exposure",
     "critical_entries","critical_open_ticks","phase_changes","storage_vetoes","extension_ticks","fallback_ticks","global_reviews","compatible_admissions")
-def summary(rows):
+def summary(rows,policies=POLICIES):
     out={}
-    for p in POLICIES:
+    for p in policies:
         ms=[r["metrics"][p] for r in rows];d={}
         for k in FIELDS:
             vals=[m[k] for m in ms if m[k] is not None];d[k]=fmean(vals) if vals else None
