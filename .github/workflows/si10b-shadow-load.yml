@@ -7,11 +7,20 @@ on:
       - '.github/workflows/si10b-shadow-load.yml'
       - 'docs/si10/shadow-load-protocol.md'
   workflow_dispatch:
+    inputs:
+      authorize_phase_a:
+        description: 'Authorize FR-PERF-01A on its isolated branch only'
+        type: boolean
+        default: false
+      authorize_holdout_transfer:
+        description: 'Authorize retrieval of the two existing pinned Bellevue holdouts'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   service-load:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.head_ref != 'research/fr-perf-01-preparation' && github.ref != 'refs/heads/research/fr-perf-01-preparation' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -64,4 +73,60 @@ jobs:
           name: si10b-shadow-load-evidence
           path: /tmp/si10b-results/shadow-load.json
           if-no-files-found: ignore
+          retention-days: 30
+
+  fr-perf-fixtures:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/research/fr-perf-01-preparation' && inputs.authorize_phase_a == true && inputs.authorize_holdout_transfer == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - working-directory: backend
+        run: |
+          mkdir -p /tmp/fr-perf-fixtures
+          python -m pytest -q tests/test_fr_perf_01_accounting.py tests/test_fr_perf_01a.py tests/test_si10b_shadow_load.py tests/test_si10_cpu_profile.py --junitxml=/tmp/fr-perf-fixtures/tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fr-perf-01a-fixtures
+          path: /tmp/fr-perf-fixtures/
+          retention-days: 30
+  fr-perf-phase-a:
+    needs: fr-perf-fixtures
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/research/fr-perf-01-preparation' && inputs.authorize_phase_a == true && inputs.authorize_holdout_transfer == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned inputs (bounded)
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fr-perf-results /tmp/fr-perf-model /tmp/fr-perf-holdouts
+          printf '%s\n' "$GITHUB_SHA" > /tmp/fr-perf-results/revision.txt
+          timeout 120s python -m pip install -r requirements-dev.txt gdown==5.2.0 2>&1 | tee /tmp/fr-perf-results/setup.log
+          python -m pip freeze > /tmp/fr-perf-results/environment.txt
+          timeout 100s python -m src.vision.model_artifacts --output /tmp/fr-perf-model/yolox_s.onnx --spec-output /tmp/fr-perf-model/spec.json
+          timeout 120s gdown 'https://drive.google.com/uc?id=11iEaThdLlOHeIrO53eZUtlyNPu0Irg3X' -O /tmp/fr-perf-holdouts/Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4
+          timeout 120s gdown 'https://drive.google.com/uc?id=1ze-CefZz5lwA2cdhXVgVlfndyoPH5H6Q' -O /tmp/fr-perf-holdouts/Bellevue_116th_NE12th__2017-09-11_11-08-33.mp4
+      - name: Execute authorized Phase A only
+        working-directory: backend
+        run: python -m src.benchmarking.fr_perf_01a --authorize-phase-a --model-spec /tmp/fr-perf-model/spec.json --model-root /tmp/fr-perf-model --holdouts /tmp/fr-perf-holdouts --output /tmp/fr-perf-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fr-perf-01a-evidence
+          path: /tmp/fr-perf-results/
           retention-days: 30
