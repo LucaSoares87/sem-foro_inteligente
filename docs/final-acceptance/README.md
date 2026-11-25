@@ -35,3 +35,6 @@ Preencher checklist.md privadamente, incluir commit, ambiente, capturas de falha
 
 ## Limites
 Mesmo com CI e demonstração aprovados, POC municipal exige autorização, câmera física, calibração, ground truth independente, desempenho e recuperação no hardware-alvo e aceite formal de campo. Nenhuma promoção automática; sem comandos para semáforos. Próxima etapa após aceite de produto: preparar POC em modo sombra, dentro dos requisitos já definidos.
+
+## Complemento PIMCAT G
+Depois de F e G integrados e CI aprovado, o mesmo comando demonstra os novos painéis. No executivo e operacional, relatório diário deve indicar ausência de cruzamento/fonte no ambiente vazio, nunca zero fabricado. No laboratório, selecionar C3 (replay externo, precisão bloqueada), D/E (gates negativos), selecionar 175/240/305s da rede E (18 segmentos desconhecidos em 240s), exportar acervo PIMCAT e confirmar propostas não aplicadas. Ver [dossiê G](../pimcat/g-pilot-dossier.md). O navegador agora executa oito verificações nomeadas, preservando as sete anteriores. Não há motor multimodal ligado à operação: as estratégias permanecem offline.
