@@ -1,0 +1,40 @@
+name: PIMCAT I2A independent perception calibration
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_i2a_calibration.py'
+      - 'backend/tests/test_pimcat_i2a_calibration.py'
+      - 'docs/pimcat/i2-perception-protocol.md'
+      - '.github/workflows/pimcat-i2a.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/i2a
+          python -m pip freeze > /tmp/i2a/environment.txt
+      - name: Calibration and unchanged perception and gateway regressions
+        run: python -m pytest -q tests/test_pimcat_i2a_calibration.py tests/test_pimcat_c3_vision.py tests/test_pimcat_h1_gateway.py tests/test_pimcat_midblock.py tests/test_pimcat_local.py --junitxml=/tmp/i2a/tests.xml
+      - name: Execute preregistered synthetic calibration
+        run: python -m src.benchmarking.pimcat_i2a_calibration --output /tmp/i2a/study.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-i2a-calibration-evidence
+          path: /tmp/i2a/
+          retention-days: 30
