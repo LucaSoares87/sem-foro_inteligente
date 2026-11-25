@@ -171,7 +171,7 @@ def choose(policy,kind,phase,age,t,qs,ages,waiting,oldest,rates,clearance,bound)
     return base,reason
 
 
-def trajectory(api,net,meta,route,rows,family,seed,policy):
+def trajectory(api,net,meta,route,rows,family,seed,policy,*,choose_fn=choose):
     kind,a,b,p,_=FAMILIES[family];rates=(2*a,b,p)
     groups=meta["groups"];cross=meta["crossing"]
     clear=math.ceil(1+meta["crossing_length"]/.6)+1
@@ -234,7 +234,7 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
                         for lane in veh_lanes["A"] for k in api.lane.getLastStepVehicleIDs(lane) if k in active]
                     boundary=min(api.lane.getLength(lane) for lane in veh_lanes["A"])
                     bound=gap_bound(t,distances,boundary,gap_available(family,t)) if not vehicle_internal else 0
-                    nxt,reason=choose(policy,kind,phase,t-start,t,q,ages,len(waiting),oldest,rates,clear,bound)
+                    nxt,reason=choose_fn(policy,kind,phase,t-start,t,q,ages,len(waiting),oldest,rates,clear,bound)
                     gap_deferred+=int(reason=="gap_defer")
                     gap_unknown_reviews+=int(reason.startswith("gap_unknown_"))
                     if nxt!=phase:switch(nxt,t,reason)
@@ -337,7 +337,7 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
     finally:api.close()
 
 
-def case(api,root,family,seed,policies=POLICIES):
+def case(api,root,family,seed,policies=POLICIES,*,choose_fn=choose):
     kind=FAMILIES[family][0]
     net,meta=network(root,kind)
     rows=demand(family,seed)
@@ -345,7 +345,7 @@ def case(api,root,family,seed,policies=POLICIES):
     return {"family":family,"topology":kind,"seed":seed,"network_sha256":hashlib.sha256(ET.canonicalize(from_file=net,with_comments=False).encode("utf-8")).hexdigest(),
         "demand_sha256":sha256_file(route),"crossing_length_m":meta["crossing_length"],
         "conflicts_verified":meta["conflicts_verified"],
-        "metrics":{p:trajectory(api,net,meta,route,rows,family,seed,p) for p in policies}}
+        "metrics":{p:trajectory(api,net,meta,route,rows,family,seed,p,choose_fn=choose_fn) for p in policies}}
 
 
 FIELDS=("person_area","vehicle_area","pedestrian_area","vehicle_max_wait","pedestrian_max_wait",
@@ -355,9 +355,9 @@ FIELDS=("person_area","vehicle_area","pedestrian_area","vehicle_max_wait","pedes
     "extension_ticks","empty_pedestrian_phases","phase_changes","pending_vehicle_seconds","a_stops","all_stops","gap_choices","gap_deferred","gap_unknown_reviews","protected_episodes_complete","protected_episodes_zero_new_A_stops","protected_episodes_censored")
 
 
-def summarize(rows):
+def summarize(rows,policies=POLICIES):
     out={}
-    for p in POLICIES:
+    for p in policies:
         ms=[r["metrics"][p] for r in rows]
         d={k:fmean(m[k] for m in ms) for k in FIELDS}
         for k in ("vehicle_max_wait","pedestrian_max_wait"):d["worst_"+k]=max(m[k] for m in ms)
