@@ -16,7 +16,8 @@ from scipy.optimize import linear_sum_assignment
 from src.archive.store import fingerprint
 from src.benchmarking.si09f_validation import HOLDOUTS, write_new
 from src.validation.io import sha256_file, load_json_model
-from src.vision.contracts import ModelSpec, MAX_JPEG
+from src.vision.contracts import ModelSpec
+from src.video.contracts import MAX_JPEG
 from src.vision.model_artifacts import YOLOX_S_SHA256
 from src.vision.yolo import YoloDetector
 
