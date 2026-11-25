@@ -43,9 +43,9 @@ try{
     await visible(page.getByText('Evidências experimentais arquivadas',{exact:true}))
     await visible(page.getByRole('table',{name:'Comparação científica arquivada'}))
     await visible(page.getByText('Proporcional apresentou menor espera',{exact:false}))
-    await page.getByRole('button',{name:/SI-11B/}).click()
+    await page.getByRole('button',{name:'SI-11B · Robust X',exact:true}).click()
     await visible(page.getByText(/Menos ultrapassagens/))
-    await page.getByRole('button',{name:/SI-11D/}).click()
+    await page.getByRole('button',{name:'SI-11D · SUMO 1.24.0',exact:true}).click()
     const downloadEvent=page.waitForEvent('download')
     await page.getByRole('button',{name:'Exportar extrato JSON'}).click()
     const download=await downloadEvent
