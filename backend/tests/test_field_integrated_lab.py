@@ -27,3 +27,15 @@ def test_missing_loss_and_new_session_fail():
 def test_short_or_inconsistent_fails():
     r=d.summarize(fixture()[:50],dict(off=20.,on=40.),50.,False,"TimeoutError",dict(tracking=1),dict(vision=10,tracking=9,analytics=9))
     for k in ("duration","coverage","cleanup","no_error","no_stage_failures","stage_conservation"):assert not r["checks"][k]
+
+def test_missing_boundary_samples_and_failures_rejected():
+    rows=fixture()
+    for r in rows:r["t"]+=4
+    assert not summary(rows)["checks"]["sampling_gap"]
+    assert not d.summarize(fixture(),dict(off=20.,on=40.),110.,True,None,dict(tracking=0,analytics=0),dict(vision=350,tracking=350,analytics=350))["checks"]["sampling_gap"]
+    assert not d.summarize(fixture(),dict(off=20.,on=40.),100.,True,None,{},dict(vision=350,tracking=350,analytics=350))["checks"]["no_stage_failures"]
+
+def test_worker_resources_reset_unknown_and_missing():
+    assert d.worker_resources([])==(None,None)
+    assert d.worker_resources([dict(cpu_seconds=2.,rss_kib=100),dict(cpu_seconds=1.,rss_kib=200)])==(None,200)
+    assert d.worker_resources([dict(cpu_seconds=1.,rss_kib=100),dict(cpu_seconds=2.,rss_kib=200)])==(1.,200)

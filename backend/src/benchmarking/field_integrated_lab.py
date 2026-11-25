@@ -3,6 +3,7 @@ import argparse
 import asyncio
 from datetime import datetime,timezone
 import json
+import math
 from pathlib import Path
 import resource
 from time import monotonic,process_time
@@ -13,6 +14,7 @@ from src.benchmarking.pimcat_i2b_resilience import publisher,terminate,distribut
 from src.benchmarking.si10b_shadow_load import process_sample
 from src.tracking.service import TrackingService
 from src.validation.io import load_json_model
+from src.validation.field_readiness import private_path, write
 from src.video.contracts import SourceSpec
 from src.video.manager import VideoManager
 from src.vision.contracts import ModelSpec
@@ -45,12 +47,14 @@ def summarize(rows,events,elapsed,cleanup,error,failures,counts):
         for r in rows:
             if r["t"]>=on and r["recent"] and r["capture"]>baseline[-1]["capture"] and r["session"]!=before[-1]["session"] and r["analytics_session"]==r["session"] and r["analytics"]>baseline[-1]["analytics"]:
                 recovery=r["t"]-on;break
-    checks=dict(duration=elapsed>=100,coverage=len(rows)>=95,sampling_gap=bool(gaps) and 0<min(gaps) and max(gaps)<=3,
+    timeline=bool(rows) and all(math.isfinite(r['t']) and 0<=r['t']<=elapsed for r in rows) and rows[0]['t']<=3 and elapsed-rows[-1]['t']<=3
+    counters_valid=all(type(r[k]) is int and r[k]>=0 for r in rows for k in COUNTERS)
+    checks=dict(duration=elapsed>=100,coverage=len(rows)>=95,sampling_gap=timeline and bool(gaps) and 0<min(gaps) and max(gaps)<=3,
         fault_timing=off is not None and on is not None and 20<=off<=23 and 40<=on<=43,
-        recovery=recovery is not None and 0<=recovery<=45,progress=monotone and all(v>0 for v in delta.values()),
+        recovery=recovery is not None and 0<=recovery<=45,progress=counters_valid and monotone and all(v>0 for v in delta.values()),
         stage_conservation=counts["vision"]==counts["tracking"]==counts["analytics"] and counts["vision"]>0,
-        no_stage_failures=not any(failures.values()),cleanup=cleanup,no_error=error is None)
-    return dict(deltas=delta,sample_span_seconds=span,fps={k:v/span if span>0 and monotone else None for k,v in delta.items()},
+        no_stage_failures=set(failures)=={'tracking','analytics'} and all(type(v) is int and v==0 for v in failures.values()),cleanup=cleanup,no_error=error is None)
+    return dict(deltas=delta,sample_span_seconds=span,fps={k:v/span if span>0 and counters_valid and monotone else None for k,v in delta.items()},
         sampled_recent_share=sum(r["recent"] for r in rows)/len(rows) if rows else None,
         decode_receive_ms=distribution([r["decode_receive_ms"] for r in rows if r["decode_receive_ms"] is not None]),
         recovery_seconds=recovery,unknown_observed=bool(lost),checks=checks)
@@ -99,10 +103,11 @@ async def run(spec,model_root,root):
     counts=dict(vision=vision.processed,tracking=track.processed,analytics=analytics.processed)
     failures=dict(tracking=track.failed,analytics=analytics.failed)
     summary=summarize(rows,events,elapsed,cleanup,error,failures,counts)
+    worker_cpu,worker_rss=worker_resources(resources)
     report=dict(scope="integrated_synthetic_loopback_not_field",model_sha256=spec.sha256,elapsed_seconds=elapsed,rows=rows,events=events,
         latency_events=latencies,worker_samples=resources,parent_cpu_seconds=process_time()-cpu,parent_peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-        worker_cpu_seconds=resources[-1]["cpu_seconds"]-resources[0]["cpu_seconds"] if len(resources)>1 else None,
-        worker_peak_sampled_rss_kib=max((r["rss_kib"] for r in resources),default=None),inference_ms=distribution([x["inference_ms"] for x in latencies]),
+        worker_cpu_seconds=worker_cpu,
+        worker_peak_sampled_rss_kib=worker_rss,inference_ms=distribution([x["inference_ms"] for x in latencies]),
         receive_to_analytics_ms=distribution([x["receive_to_analytics_ms"] for x in latencies]),stage_counts=counts,failures=failures,error_type=error,cleanup=cleanup,
         summary=summary,technical_gate_passed=all(summary["checks"].values()),source_latency_ms=None,field_accuracy=None,process_tree_rss=None,
         soak_24h="NOT_RUN",human_acceptance="PENDING_HUMAN",physical_actuation=False,candidate_promoted=False,operationally_validated=False,pilot_ready=False,operational_decision="abstain")
@@ -115,16 +120,24 @@ def verify(report):
     assert r["technical_gate_passed"]==all(r["summary"]["checks"].values())
     assert r["inference_ms"]==distribution([x["inference_ms"] for x in r["latency_events"]])
     assert r["receive_to_analytics_ms"]==distribution([x["receive_to_analytics_ms"] for x in r["latency_events"]])
+    assert (r['worker_cpu_seconds'],r['worker_peak_sampled_rss_kib'])==worker_resources(r['worker_samples'])
+    assert all(r[k] is None for k in ('source_latency_ms','field_accuracy','process_tree_rss'))
     assert r["operational_decision"]=="abstain" and r["human_acceptance"]=="PENDING_HUMAN" and r["soak_24h"]=="NOT_RUN"
     assert all(r[k] is False for k in ("physical_actuation","candidate_promoted","operationally_validated","pilot_ready"))
     return r["technical_gate_passed"]
+
+def worker_resources(samples):
+    cpu=[s['cpu_seconds'] for s in samples];rss=[s['rss_kib'] for s in samples]
+    valid=all(type(x) in (int,float) and math.isfinite(x) and x>=0 for x in cpu+rss)
+    if not valid:return None,None
+    return (cpu[-1]-cpu[0] if len(cpu)>1 and all(b>=a for a,b in zip(cpu,cpu[1:])) else None, max(rss,default=None))
 
 def main():
     p=argparse.ArgumentParser();p.add_argument("--model-spec",required=True);p.add_argument("--model-root",required=True);p.add_argument("--output",required=True);p.add_argument("--authorize-bounded-lab",action="store_true");a=p.parse_args()
     if not a.authorize_bounded_lab:p.error("explicit bounded lab authorization required")
     assert __debug__
-    path=Path(a.output);assert not path.exists()
+    path=private_path(a.output);assert not path.exists()
     r=asyncio.run(run(load_json_model(a.model_spec,ModelSpec),Path(a.model_root),path.parent))
-    with path.open("x") as f:json.dump(r,f,indent=2,sort_keys=True,allow_nan=False)
+    write(path,r)
     assert verify(r),"integrated lab technical gate failed"
 if __name__=="__main__":main()
