@@ -50,10 +50,15 @@ jobs:
           python-version: '3.12'
       - name: Prepare pinned validation model and local fixture
         working-directory: backend
+        shell: bash
         run: |
-          python -m pip install -r requirements-dev.txt
-          command -v ffmpeg
+          set -euo pipefail
           mkdir -p /tmp/fr-d-model /tmp/fr-d-results
+          printf 'revision=%s\nrun_id=%s\nrun_attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > /tmp/fr-d-results/setup-status.txt
+          trap 'rc=$?; printf "setup_exit_code=%s\n" "$rc" >> /tmp/fr-d-results/setup-status.txt' EXIT
+          python -m pip install -r requirements-dev.txt 2>&1 | tee /tmp/fr-d-results/dependencies.log
+          { command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg); } 2>&1 | tee /tmp/fr-d-results/ffmpeg-provision.log
+          command -v ffmpeg
           python -m pip freeze > /tmp/fr-d-results/environment.txt
           ffmpeg -version > /tmp/fr-d-results/ffmpeg.txt
           python -m src.vision.model_artifacts --output /tmp/fr-d-model/yolox_s.onnx --spec-output /tmp/fr-d-model/spec.json
