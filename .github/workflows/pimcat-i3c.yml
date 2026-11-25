@@ -1,0 +1,40 @@
+name: PIMCAT I3C research feedback and schedule planning
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_i3c_feedback.py'
+      - 'backend/tests/test_pimcat_i3c_feedback.py'
+      - 'docs/pimcat/i3c-feedback-protocol.md'
+      - '.github/workflows/pimcat-i3c.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  feedback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/i3c
+          python -m pip freeze > /tmp/i3c/environment.txt
+      - name: Verify research feedback and unchanged regressions
+        run: python -m pytest -q tests/test_pimcat_i3c_feedback.py tests/test_pimcat_i3b_performance.py tests/test_pimcat_i3_history.py tests/test_pimcat_f_daily.py tests/test_pimcat_i2b_resilience.py --junitxml=/tmp/i3c/tests.xml
+      - name: Export preregistered synthetic feedback and schedule
+        run: python -m src.benchmarking.pimcat_i3c_feedback --reference-date 2026-12-31 --fixture --output /tmp/i3c/study.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-i3c-feedback-evidence
+          path: /tmp/i3c/
+          retention-days: 30
