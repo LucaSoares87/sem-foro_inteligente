@@ -34,9 +34,9 @@ def select_span(timestamps, frame_count):
     raise ValueError("no continuous 30 FPS span of requested length")
 
 
-def prepare(source, output, seconds=32):
+def prepare(source, output, seconds=32, *, source_name=SOURCE_NAME, source_sha=SOURCE_SHA):
     source, output = Path(source), Path(output)
-    if source.name != SOURCE_NAME or sha256_file(source) != SOURCE_SHA:
+    if source.name != source_name or sha256_file(source) != source_sha:
         raise ValueError("source identity or sha256 mismatch")
     if output.suffix != ".mkv" or output.resolve() == source.resolve() or output.exists():
         raise ValueError("new MKV output required; no overwrite")
@@ -108,7 +108,7 @@ def prepare(source, output, seconds=32):
         capture.release()
     return {
         "schema_version":1,"origin":"external_real_replay","commercial_demo_authorized":False,
-        "source_filename":source.name,"source_sha256":SOURCE_SHA,
+        "source_filename":source.name,"source_sha256":source_sha,
         "derived_filename":output.name,"derived_sha256":sha256_file(output),
         "source_start_frame_zero_based":start,"source_end_frame_exclusive":end,
         "source_start_seconds":stamps[start],"source_end_seconds":stamps[end-1],
