@@ -8,3 +8,6 @@ Before any trial: explicit host, owner, cost and media authorization references,
 Use dedicated Linux host, explicit 24h cost and host authorization, no hosted runner, no municipal infrastructure; isolated MediaMTX 1.12.3 loopback and FFmpeg, 86400s continuous, three faults, recovery <=45s per I2B. Check disk, memory, CPUs, versions and authorization locally; no launch or scheduler. Record private preflight inventory and missing prerequisites; no inference that hardware is suitable from inventory. Existing dedicated profile and verifier unchanged. No 24h evidence produced.
 ## Technical gates
 Preflight inventory only: bounded local read-only collection, no network/start/stop, check required distinct approvals and hash, 0600 exclusive output outside checkout, preserve unknown, no physical actuation, promotion, human acceptance or gate registration. Tests synthetic; C must not merge ahead of B. 
+
+## Integration audit
+B 2ed12fe, postmerge 45647914393 success 3/3. C initial 3 workflows/5 jobs success, JUnit 18/18 and 34/34. ZIP hashes 48b183ad79c60e0dc0bf7ef0588db754cf54abbcf2dc4f0c3016d05653a0be93 and 261337ef29e34e925ab307b5c14bff561f1191cd37b108a31cb1e5fcb9a590af. Integrate validated B into C, retain six additions and require combined regressions. No criteria changed.
