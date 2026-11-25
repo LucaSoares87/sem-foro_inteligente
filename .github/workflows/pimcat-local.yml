@@ -1,0 +1,68 @@
+name: PIMCAT local multimodal research
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_local.py'
+      - 'backend/tests/test_pimcat_local.py'
+      - 'docs/pimcat/**'
+      - '.github/workflows/pimcat-local.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-study:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing development dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements-dev.txt
+      - name: Test new rules and previous scientific regressions
+        working-directory: backend
+        run: |
+          python -m pytest -q tests/test_pimcat_local.py tests/test_queue_optimization.py tests/test_si13_current_optimization.py
+      - name: Run preregistered paired experiment
+        working-directory: backend
+        run: |
+          mkdir -p /tmp/pimcat-evidence
+          python -m src.benchmarking.pimcat_local --output /tmp/pimcat-evidence/local-study.json
+          python --version > /tmp/pimcat-evidence/environment.txt
+          python -m pip freeze >> /tmp/pimcat-evidence/environment.txt
+      - name: Verify paired evidence, accounting, gates and hash
+        working-directory: backend
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from src.benchmarking.pimcat_local import digest,run
+          p=Path('/tmp/pimcat-evidence/local-study.json')
+          d=json.loads(p.read_text()); sha=d.pop('result_sha256')
+          assert digest(d)==sha
+          assert d['cases']==96 and d['trajectories']==672 and len(d['rows'])==96
+          assert d['candidate_promoted'] is False and d['physical_actuation'] is False
+          assert d['operational_decision']=='abstain' and d['operationally_validated'] is False
+          assert d['sumo_pedestrian_validation']=='NOT_RUN'
+          for row in d['rows']:
+              assert len(row['metrics'])==7
+              for m in row['metrics'].values():
+                  assert m['vehicle_arrivals']==m['vehicle_departed']+m['vehicle_remaining']
+                  assert m['pedestrian_arrivals']==m['pedestrian_completed']+m['pedestrian_waiting']+m['pedestrian_crossing']
+                  assert m['conflict_violations']==0
+          assert run()['result_sha256']==sha
+          print('Deterministic report verified. Scientific gate:',d['research_gate_passed'])
+          PY
+      - name: Archive aggregate research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pimcat-local-evidence
+          path: /tmp/pimcat-evidence/
+          if-no-files-found: warn
+          retention-days: 30
