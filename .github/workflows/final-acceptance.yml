@@ -35,6 +35,7 @@ jobs:
         run: |
           python -m unittest discover -s ops -p test_final_acceptance.py -v
           python -m json.tool .devcontainer/devcontainer.json >/dev/null
+          docker manifest inspect mcr.microsoft.com/devcontainers/base:noble >/dev/null
           mkdir -p /tmp/final-acceptance
       - name: Install browser and preserve existing frontend tests
         working-directory: frontend
