@@ -209,7 +209,7 @@ def percentile(v):
     return sorted(v)[math.ceil(.95*len(v))-1] if v else None
 
 
-def trajectory(api,net,meta,route,rows,family,seed,policy):
+def trajectory(api,net,meta,route,rows,family,seed,policy,*,forecast_fn=None,collect_eta=False):
     n,spacing,_,_,_,_,mid=FAMILIES[family]
     states=[State() for _ in meta]
     planned={r[2]:r for r in rows};by_time=defaultdict(set)
@@ -218,6 +218,7 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
     requested={};admitted={};completed=set();ped_wait={};waits=defaultdict(int)
     moving=set();was_stopped=set();stops=defaultdict(int)
     cohorts=[[] for _ in range(n)];issued={};arrived_eta={};segment_seen=[set() for _ in range(n)]
+    eta_context={}
     crossings=[set() for _ in meta];internals=[set() for _ in meta]
     speed_samples=[];area_v=area_p=critical=0.;pending_ticks=0
     corridor_area=transverse_area=0;segment_critical=[0.]*n
@@ -329,9 +330,13 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
                 new_segment=present-segment_seen[i]
                 segment_seen[i].update(present)
                 if new_segment:
-                    c=forecast(t+1,len(new_segment),max(1,lengths[i]-20))
+                    distance=max(1,lengths[i]-20)
+                    queued=sum(speed[k]<.1 for k in present)
+                    c=forecast(t+1,len(new_segment),distance) if forecast_fn is None else forecast_fn(t+1,len(new_segment),distance,queued)
                     cohorts[i].append(c)
-                    for k in new_segment:issued[(i,k)]=c # synthetic evaluation only
+                    for k in new_segment:
+                        issued[(i,k)]=c # synthetic evaluation only
+                        if collect_eta:eta_context[(i,k)]=(distance,queued)
                     critical_entries+=len(new_segment) if blocked_at[i-1] else 0
                 for k in present:
                     if pos[k]>=lengths[i]-20 and (i,k) in issued:
@@ -365,7 +370,7 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
         err=[abs(t-issued[k].nominal) for k,t in arrived_eta.items()]
         covered=sum(issued[k].earliest<=t<=issued[k].latest for k,t in arrived_eta.items())
         mean_speed=fmean(speed_samples) if speed_samples else None
-        return {"runtime_version":actual,"vehicle_scheduled":v_total,"vehicle_exited":len(done),
+        result={"runtime_version":actual,"vehicle_scheduled":v_total,"vehicle_exited":len(done),
             "vehicle_remaining":len(active),"vehicle_uninserted":v_total-len(entered),
             "corridor_scheduled":sum(r[1]=="A" for r in rows),"corridor_exited":len(corridor_done),
             "pedestrian_scheduled":p_total,"pedestrian_exited":len(p_done),"pedestrian_remaining":len(persons),
@@ -393,15 +398,21 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
             "compatible_admissions":compatible,"extension_ticks":extensions,"green_ticks":green_ticks,
             "mid_empty_interruptions":mid_empty_interruptions,"collisions":collisions,"teleports":teleports,
             "overspeed_samples":overspeed,"conflict_violations":conflict,"red_entries":red_entries,"plans":plans}
+        if collect_eta:
+            result["eta_samples"]=sorted([
+                [*eta_context[k],arrived_eta[k]-c.issued if k in arrived_eta else None,
+                 c.earliest-c.issued,c.nominal-c.issued,c.latest-c.issued]
+                for k,c in issued.items()],key=lambda v:(v[0],v[1],-1 if v[2] is None else v[2],*v[3:]))
+        return result
     finally:api.close()
 
 
-def case(api,root,family,seed,policies=POLICIES):
+def case(api,root,family,seed,policies=POLICIES,*,forecast_fn=None,collect_eta=False):
     net,meta=network(root,family)
     rows=demand(family,seed);route=root/"demand.rou.xml";routes(route,meta,rows)
     return {"family":family,"nodes":len(meta),"seed":seed,"conflicts_verified":True,
         "network_sha256":hashlib.sha256(ET.canonicalize(from_file=net,with_comments=False).encode()).hexdigest(),
-        "demand_sha256":sha256_file(route),"metrics":{p:trajectory(api,net,meta,route,rows,family,seed,p) for p in policies}}
+        "demand_sha256":sha256_file(route),"metrics":{p:trajectory(api,net,meta,route,rows,family,seed,p,forecast_fn=forecast_fn,collect_eta=collect_eta) for p in policies}}
 
 
 FIELDS=("person_area","vehicle_area","corridor_vehicle_area","transverse_vehicle_area","pedestrian_area","critical_exposure","vehicle_exited","corridor_exited",
@@ -411,9 +422,9 @@ FIELDS=("person_area","vehicle_area","corridor_vehicle_area","transverse_vehicle
     "extension_ticks","eta_reviews","eta_issued","eta_arrived","eta_censored","pedestrian_admitted","pedestrian_waiting")
 
 
-def summary(rows):
+def summary(rows,policies=POLICIES):
     out={}
-    for p in POLICIES:
+    for p in policies:
         ms=[r["metrics"][p] for r in rows];d={}
         for k in FIELDS:
             vals=[m[k] for m in ms if m[k] is not None]
