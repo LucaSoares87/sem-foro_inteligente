@@ -1,3 +1,4 @@
+import IntegratedResearchEvidence from '../components/IntegratedResearchEvidence.jsx'
 import GapResearchPanel from '../components/GapResearchPanel.jsx'
 import PimcatEvidence from '../components/PimcatEvidence.jsx'
 import ResearchEvidence from '../components/ResearchEvidence.jsx'
@@ -23,6 +24,7 @@ export default function LaboratoryView({ data }) {
     <ResearchEvidence/>
     <PimcatEvidence/>
     <GapResearchPanel/>
+    <IntegratedResearchEvidence/>
     <DecisionPanel availability={data?.decision} sources={data?.analytics?.sources || []} />
   </div>
 }
