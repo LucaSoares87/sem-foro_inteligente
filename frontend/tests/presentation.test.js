@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import {nextPresentationStep,presentationSteps,previousPresentationStep} from '../src/app/presentation.js'
 
 test('guided presentation is finite, ordered and marks synthetic content',()=>{
-  assert.deepEqual(presentationSteps.map(step=>step.id),['overview','intersection','history','intelligence','simulation'])
-  assert.equal(presentationSteps.filter(step=>step.kind==='synthetic').length,1)
-  assert.equal(presentationSteps.at(-1).id,'simulation')
+  assert.deepEqual(presentationSteps.map(step=>step.id),['overview','intersection','history','intelligence','simulation','evidence','readiness'])
+  assert.equal(presentationSteps.filter(step=>step.kind==='synthetic').length,2)
+  assert.equal(presentationSteps.at(-1).id,'readiness')
 })
 
 test('presentation navigation wraps without invalid indices',()=>{

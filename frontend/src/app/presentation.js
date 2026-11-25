@@ -3,7 +3,9 @@ export const presentationSteps=[
   {id:'intersection',label:'Cruzamento',kind:'observed'},
   {id:'history',label:'Histórico',kind:'observed'},
   {id:'intelligence',label:'Inteligência',kind:'observed'},
-  {id:'simulation',label:'Simulação',kind:'synthetic'}
+  {id:'simulation',label:'Simulação',kind:'synthetic'},
+  {id:'evidence',label:'Evidências',kind:'synthetic'},
+  {id:'readiness',label:'Homologação',kind:'observed'}
 ]
 
 export function nextPresentationStep(index,length=presentationSteps.length){
