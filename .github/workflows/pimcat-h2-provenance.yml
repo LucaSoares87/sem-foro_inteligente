@@ -1,0 +1,25 @@
+name: PIMCAT H2 archived evidence
+on:
+  pull_request:
+    paths:
+      - 'frontend/src/app/h2Evidence.json'
+      - 'backend/scripts/verify_pimcat_h2_extract.py'
+      - '.github/workflows/pimcat-h2-provenance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-extract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify original report and displayed values
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15024700814/zip" > /tmp/h2-original.zip
+          python backend/scripts/verify_pimcat_h2_extract.py /tmp/h2-original.zip

@@ -1,3 +1,4 @@
+import LiveGatewayPanel from '../components/LiveGatewayPanel.jsx'
 import PimcatEvidence from '../components/PimcatEvidence.jsx'
 import DailyIntelligence from '../components/DailyIntelligence.jsx'
 import PilotStatus from '../components/PilotStatus.jsx'
@@ -41,6 +42,7 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
       </label>}
     </section>
 
+    <LiveGatewayPanel gateway={data?.live_gateway}/>
     <PilotStatus data={data} healthStatus={healthStatus} navigate={navigate}/>
     {requested&&!catalog.some(row=>row.code===requested)&&<p className="rounded-lg border border-amber-400/30 p-3 text-sm text-amber-200">Cruzamento solicitado indisponível. Exibindo o contexto disponível, não o solicitado.</p>}
     {meta ? <Panel>

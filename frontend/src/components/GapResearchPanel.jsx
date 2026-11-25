@@ -1,0 +1,13 @@
+import React from 'react'
+import {Panel,SectionHeading} from './ui.jsx'
+import data from '../app/h2Evidence.json'
+import {valueText,downloadJson} from '../app/dailyReport.js'
+const labels=['Atraso coletivo (pessoa·s)','Área veicular (veíc.·s)','Área de espera P (pessoa·s)','Novas paradas A','Novas paradas totais','Veículos saídos','Travessias concluídas','Veículos não inseridos','Pior espera P (s)','Violações P (total)','Violações V (total)','Serviços completos','Serviços sem nova parada A','Serviços censurados','Escolhas por brecha','Revisões com adiamento','Revisões sem previsão']
+export default function GapResearchPanel(){
+  return <Panel><SectionHeading eyebrow="PIMCAT H2 · RP-08" title="Travessias protegidas em brechas" description="96 trajetórias SUMO 1.24.0, 24 casos pareados e sementes novas. Pesquisa arquivada, não dados de campo." action={<button className="button-secondary" type="button" onClick={()=>downloadJson(data,'pimcat-h2-evidencias.json')}>Exportar extrato H2</button>}/>
+    <div className="rounded-lg border border-amber-400/30 p-3 text-sm text-amber-200">Gate científico reprovado. Menos paradas A, mas mais espera de pedestres. Sem promoção; C3 precisão independente bloqueada. Uma brecha nunca autoriza travessia em vermelho.</div>
+    <p className="my-3 text-sm text-slate-400">Médias por caso, salvo pior espera e totais indicados. Serviços sem nova parada A são um indicador observacional, não uma estimativa causal de paradas evitadas. A abordagem usa geometria sintética e proteção semafórica; sem promessa de segurança real.</p>
+    <div className="overflow-x-auto"><table className="w-full min-w-[600px] text-sm" aria-label="Comparação científica RP-08"><thead><tr><th className="p-2 text-left">Indicador</th>{data.rows.map(r=><th className="p-2 text-left" key={r[0]}>{r[0]}</th>)}</tr></thead><tbody>{labels.map((label,i)=><tr key={label} className="border-t border-slate-800"><th className="p-2 text-left" scope="row">{label}</th>{data.rows.map(r=><td key={r[0]} className="p-2 tabular-nums">{valueText(r[i+1])}</td>)}</tr>)}</tbody></table></div>
+    <details className="mt-3 text-xs text-slate-400"><summary>Proveniência e gates</summary><p>Meio de quadra, cruzamentos e stress: reprovados. Redução direcional de paradas: demonstrada na amostra sintética.</p><p className="break-all">SHA-256 do relatório: {data.report_sha256}</p><p className="break-all">SHA-256 do pacote: {data.zip_sha256}</p><a className="text-sky-300 underline" href={'https://github.com/LucaSoares87/sem-foro_inteligente/actions/runs/'+data.run} target="_blank" rel="noreferrer">Ensaio original · artefato {data.artifact}</a></details>
+  </Panel>
+}

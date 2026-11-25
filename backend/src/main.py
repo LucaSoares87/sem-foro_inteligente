@@ -117,6 +117,7 @@ def create_app(settings=None):
             app.state.history.start()
             app.state.queue_persistence.start()
             app.state.vision.start()
+            app.state.video.start_supervisor()
             yield
         finally:
             try:
@@ -180,6 +181,7 @@ def create_app(settings=None):
             "websocket": "available", "websocket_connections": request.app.state.ws_count,
             "stream_manager": video["state"], "inference_engine": vision["state"],
             "video": video, "vision": vision,
+            "live_gateway": request.app.state.video.gateway_status(),
             "tracking": request.app.state.tracking.status(),
             "analytics": request.app.state.analytics.status(),
             "predictive": request.app.state.history.status(),
