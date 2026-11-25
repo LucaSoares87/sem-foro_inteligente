@@ -3,6 +3,7 @@ from collections import deque
 from itertools import product
 from pathlib import Path
 import json
+import os
 import pytest
 from src.benchmarking import pimcat_local as l, pimcat_midblock as m
 from src.benchmarking import pimcat_c2_sumo as c2, pimcat_d_sumo as d, pimcat_e_global as e
@@ -32,6 +33,7 @@ PERSON=Person((.2,.2,.3,.4),.9)
 
 @pytest.fixture(scope="module")
 def microscopic(tmp_path_factory):
+    if os.environ.get("PIMCAT_C2_SUMO_REQUIRED")!="1":pytest.skip("pinned SUMO only in G research CI")
     root=tmp_path_factory.mktemp("g-sumo");api=c2.ensure_version()
     # Selected previously registered cases. Not independent efficacy evidence.
     return {
