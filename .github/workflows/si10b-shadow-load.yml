@@ -1,0 +1,67 @@
+name: SI-10B paced service load
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/si10b_shadow_load.py'
+      - 'backend/tests/test_si10b_shadow_load.py'
+      - '.github/workflows/si10b-shadow-load.yml'
+      - 'docs/si10/shadow-load-protocol.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  service-load:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing research runtime
+        run: python -m pip install -r requirements-dev.txt gdown==5.2.0
+      - name: Validate overload accounting and previous research contracts
+        run: python -m pytest -q tests/test_si10b_shadow_load.py tests/test_si10_cpu_profile.py tests/test_si09f_validation.py tests/test_si09e_diagnostics.py tests/test_si09d_preflight.py tests/test_benchmarking.py
+      - name: Acquire official videos and pinned model
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si10b-private /tmp/si10b-model /tmp/si10b-results
+          gdown 'https://drive.google.com/uc?id=11iEaThdLlOHeIrO53eZUtlyNPu0Irg3X' -O /tmp/si10b-private/Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4
+          gdown 'https://drive.google.com/uc?id=1ze-CefZz5lwA2cdhXVgVlfndyoPH5H6Q' -O /tmp/si10b-private/Bellevue_116th_NE12th__2017-09-11_11-08-33.mp4
+          python -m src.vision.model_artifacts --output /tmp/si10b-model/yolox_s.onnx --spec-output /tmp/si10b-model/spec.json
+      - name: Measure paced overload and fairness through actual services
+        run: python -m src.benchmarking.si10b_shadow_load --source-root /tmp/si10b-private --model-spec /tmp/si10b-model/spec.json --model-root /tmp/si10b-model --geometry ../docs/si09/bellevue-preliminary-geometry.json --output /tmp/si10b-results/shadow-load.json
+      - name: Verify complete evidence without operational promotion
+        run: |
+          python - <<'PY'
+          import json
+          from src.archive.store import fingerprint
+          d=json.load(open('/tmp/si10b-results/shadow-load.json'))
+          b=dict(d); sha=b.pop('result_sha256')
+          assert sha==fingerprint(b)
+          assert d['scope']=='paced_offline_service_load_not_field'
+          assert all(d[k] is False for k in ('candidate_promoted','adaptive_fps_enabled','independent_accuracy_validated','commercial_demo_authorized','operationally_validated','physical_actuation'))
+          assert d['engineering_recommended_min_fps'] is None
+          threads=[t for t in (1,2,4) if t<=d['hardware']['thread_budget']]
+          assert [(r['threads'],r['source_count'],r['offered_fps_per_source']) for r in d['runs']]==[(t,n,5) for t in threads for n in (1,2)]+[(max(threads),2,2)]
+          for r in d['runs']:
+              assert r['duration_seconds']==12 and r['optimization_state']=='abstain'
+              assert r['max_pending_per_source']==1 and r['physical_actuation'] is False
+              for s in r['sources']:
+                  assert s['offered']==12*r['offered_fps_per_source']==s['processed']+s['overwritten']
+                  assert s['completed_within_window']<=s['processed']
+          PY
+      - name: Preserve aggregate evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si10b-shadow-load-evidence
+          path: /tmp/si10b-results/shadow-load.json
+          if-no-files-found: ignore
+          retention-days: 30
