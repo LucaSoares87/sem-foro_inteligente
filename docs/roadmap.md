@@ -29,3 +29,6 @@ Bellevue entra somente como `external_real_replay`. O dataset pode acelerar dese
 
 ### Bellevue FPS sweep
 O acesso direto ao Drive público oficial de Bellevue foi validado e amostras reais foram inspecionadas. A taxa efetiva varia por arquivo; por isso `30/15/10/5` continua sendo um protocolo estrito e não um rótulo nominal. O YOLOX-S oficial, Apache-2.0, foi selecionado com adapter isolado e aquisição pinada por SHA-256. O benchmark real só começa após o adapter e o ONNX oficial passarem os gates do CI; nenhum resultado Bellevue será fabricado.
+
+## PIMCAT — extensão de pesquisa, sem interromper o aceite existente
+Base estável FINAL-ACCEPTANCE PR #31, aaf128adc2cf7cbfee4373c2942e5e552a566db9. SI-01–SI-13 e aceite automatizado concluídos; aceite humano no Codespaces e sete gates reais continuam pendentes. PIMCAT é uma extensão de pesquisa separada, não substituição de SI-09/SI-13 e não condição para testar o produto atual. Veja [arquitetura e auditoria](pimcat/architecture.md), [rastreabilidade](pimcat/requirements.md) e [protocolo pré-registrado local](pimcat/local-protocol.md). A primeira entrega experimenta B/C local; D/E/F/G dependem dos gates científicos, dados/calibração e decisões documentadas. Nenhum candidato operacional promovido.
