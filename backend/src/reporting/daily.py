@@ -63,7 +63,7 @@ def daily_report(intersection,day,histories):
     for key,points in sorted(groups.items()):
         points.sort(key=lambda p:p[0])
         for a,b in zip(points,points[1:]):
-            if b[0]<a[1] or b[4]<=a[5]:raise ValueError("overlapping series")
+            if b[0]<a[1] or b[4]<a[5]:raise ValueError("overlapping series")
         observed=[p for p in points if not p[3]]
         limited=[p for p in points if p[3]]
         def stats(items):

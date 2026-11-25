@@ -1,3 +1,4 @@
+import PimcatEvidence from '../components/PimcatEvidence.jsx'
 import ResearchEvidence from '../components/ResearchEvidence.jsx'
 import React from 'react'
 import DecisionPanel from '../DecisionPanel.jsx'
@@ -19,6 +20,7 @@ export default function LaboratoryView({ data }) {
       </div>
     </Panel>
     <ResearchEvidence/>
+    <PimcatEvidence/>
     <DecisionPanel availability={data?.decision} sources={data?.analytics?.sources || []} />
   </div>
 }

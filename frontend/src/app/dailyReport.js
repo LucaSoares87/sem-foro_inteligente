@@ -1,4 +1,7 @@
-export const dailyDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+export const dailyDate=()=>{
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]))
+  return p.year+'-'+p.month+'-'+p.day
+}
 export async function fetchDaily(intersection,day,signal,fetcher=fetch){
   if(!/^[A-Z0-9_-]{2,80}$/.test(intersection||'')||!/^\d{4}-\d{2}-\d{2}$/.test(day||''))throw Error('invalid context')
   const response=await fetcher('/api/v1/reporting/intersections/'+encodeURIComponent(intersection)+'/daily?day='+day,{signal,cache:'no-store'})

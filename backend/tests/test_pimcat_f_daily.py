@@ -16,7 +16,7 @@ def windows():
     start,_=bounds(DAY)
     a=make_windows(1)[0]
     return [a.model_copy(update={"started_at":start+timedelta(seconds=60*i),
-      "ended_at":start+timedelta(seconds=60*(i+1)),"start_sequence":1+10*i,"end_sequence":10+10*i,
+      "ended_at":start+timedelta(seconds=60*(i+1)),"start_sequence":1+10*i,"end_sequence":11+10*i,
       "duration_seconds":60,"skipped_frames":int(i==1)}) for i in range(2)]
 
 def test_daily_zero_limited_boundary_and_digest():

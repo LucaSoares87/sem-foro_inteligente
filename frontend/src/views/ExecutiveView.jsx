@@ -1,3 +1,5 @@
+import PimcatEvidence from '../components/PimcatEvidence.jsx'
+import DailyIntelligence from '../components/DailyIntelligence.jsx'
 import PilotStatus from '../components/PilotStatus.jsx'
 import React, {useMemo, useState} from 'react'
 import { collectAlerts, executiveMetrics, formatMetric } from '../app/viewModel.js'
@@ -41,6 +43,8 @@ export default function ExecutiveView({ data, healthStatus, realtime, intersecti
       <MetricCard label="Alertas atuais" value={formatMetric(alerts.filter(a => a.severity !== 'info').length)} detail="Condições técnicas detectadas pela plataforma." tone={alerts.some(a => a.severity === 'critical') ? 'critical' : alerts.some(a => a.severity === 'warning') ? 'warning' : 'good'} />
     </section>
 
+    <DailyIntelligence intersections={intersectionStatus==='current'?intersections:[]} enabled={data?.predictive?.state!=='disabled'}/>
+    <PimcatEvidence compact/>
     <Panel>
       <SectionHeading eyebrow="Cobertura geográfica" title="Mapa de cruzamentos cadastrados" description="Posições WGS84 fornecidas pelo cadastro administrativo. O mapa vetorial não usa tiles, geocodificação ou serviço externo." />
       <GeoOverview rows={filtered} onOpen={code=>navigate?.('operations',{intersection:code})}/>
