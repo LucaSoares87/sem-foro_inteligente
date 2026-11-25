@@ -53,3 +53,9 @@ Estados: EXISTENTE, PARCIAL, PLANEJADO, BLOCKED/NOT_RUN. Aceite técnico != auto
 | RP-07 | pimcat_midblock.py (pesquisa) | 86400 amostras sem pedido mantêm preferência veicular; pedido individual registrado; prazo não reinicia; ocupação/clearance, incerteza e obrigações vetam retorno |
 | 26 | travessia isolada sem demanda | ausência confirmada em espera/faixa; sem alternância periódica; C2 SUMO NOT_RUN |
 | 27 | travessia isolada com pedido único e retomada | botoeira/observação, proteção e confirmação de atendimento; C2 SUMO/C3 campo NOT_RUN |
+
+## Complemento RP-08 — brechas veiculares
+| Requisito | Componente | Gate |
+|---|---|---|
+| RP-08 | pimcat_h2_gap.py (pesquisa isolada) | Aproveitar brechas somente para serviço protegido, preservar RP-07, prazos e proteção. 96 trajetórias SUMO executadas; redução de paradas observada, aumento da espera de pedestres; candidato reprovado. C3 independente e calibração de brechas reais bloqueadas. |
+| 28 (complementar, fora da matriz G original) | baixo fluxo e pelotões | comparar paradas, espera, episódios protegidos, censura e perda da previsão; nunca travessia vermelha. |
