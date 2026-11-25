@@ -1,5 +1,6 @@
 """Offline microscopic pedestrian study, never imported by the application."""
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -336,7 +337,7 @@ def case(api,root,family,seed,policies=POLICIES):
     net,meta=network(root,kind)
     rows=demand(family,seed)
     route=root/"demand.rou.xml";routes(route,meta,rows)
-    return {"family":family,"topology":kind,"seed":seed,"network_sha256":sha256_file(net),
+    return {"family":family,"topology":kind,"seed":seed,"network_sha256":hashlib.sha256(ET.canonicalize(from_file=net,with_comments=False).encode("utf-8")).hexdigest(),
         "demand_sha256":sha256_file(route),"crossing_length_m":meta["crossing_length"],
         "conflicts_verified":meta["conflicts_verified"],
         "metrics":{p:trajectory(api,net,meta,route,rows,family,seed,p) for p in policies}}
