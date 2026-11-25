@@ -11,7 +11,8 @@ permissions:
 jobs:
   browser-demo:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    # Playwright 1.51.1 supports Ubuntu 24.04; avoid floating runner OS upgrades.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       POSTGRES_PASSWORD: si12_ephemeral_ci_only
