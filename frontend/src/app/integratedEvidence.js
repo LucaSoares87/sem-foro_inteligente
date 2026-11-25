@@ -1,0 +1,20 @@
+// Archived, curated extracts; no runtime measurement or candidate promotion.
+export const integratedEvidence={
+  scope:'archived_research_not_field',physical_actuation:false,candidate_promoted:false,operationally_validated:false,human_acceptance:'PENDING_HUMAN',operational_decision:'abstain',scheduler_installed:false,
+  studies:[
+    ['I1A','Inteligência de pedestres','marginal_pass','Resultado positivo marginal','120 trajetórias; duas escolhas incrementais, sem novos adiamentos.','Não demonstra benefício de campo.',15029745572,'5b644656ed6f8e96a6fad3e0bdaeaa1af0759a754094165b97588a7124aa969c',45627201679],
+    ['I1B','Onda verde','failed','Gate de controle reprovado','208 trajetórias incluindo calibração; cobertura ETA até 89,02%.','Melhor previsão não equivale a melhor controle.',15028982222,'d8c443c530a4295b2814236d430e8c5d7030d2963e592cb5ec5fe042caac4fc9',45628138730],
+    ['I1C','Inteligência global','failed','Gate global reprovado','144 trajetórias; entradas críticas storage 185 → 135.','Atraso e não inseridos aumentaram.',15029547716,'4957e94109ee07d7b307327a3a1a04a5d00166e07951abb9c9b07dfb83445ebb',45629280296],
+    ['I1D','Inteligência veicular','null_failed','Resultado nulo; gate reprovado','160 trajetórias; zero inversões em 128 decisões.','Sem benefício incremental sobre proporcional.',15032305730,'1bd9c4b1ac502a736be4e089798720d798ecf8205d9b02d3c19758cb5e3018cf',45631595832],
+    ['I2A','Calibração espacial','synthetic_pass','Gate matemático sintético aprovado','24 casos em duas geometrias; erro analítico dentro do limite.','Velocidade física não validada.',15031192592,'5185a9c6c4e8850ad52eaa88b1e7a8a5504845b8b5a683ae89d5d69a5d0a7f45',45632722003],
+    ['I2B','Resiliência de câmeras','synthetic_pass','Ensaio curto aprovado','180 s, duas recuperações em cerca de 20 s; FPS mediano 3,92 de 5.','Loopback; não é soak de 24h, RTSPS ou VMS municipal.',15032996981,'38adf496ef7a8887ca4f85a687d05b676c3d48d5e7d2561e25d2d1519c726cfd',45635144027],
+    ['I2C1','Estimativa temporal','synthetic_pass','Gate científico sintético aprovado','192 casos; regressão temporal reduz erro a 30 FPS em velocidade constante.','Viés na aceleração; não é medição física.',15034320676,'5f303985efec27ea688c12b156b7a3fde04559d1b66fac007000692c3aac70c0',45636813920],
+    ['I3A','Histórico','technical_pass','Testes de software aprovados','10 testes; comparação conservadora e cobertura integral.','Sem histórico municipal real.',15032954729,null,45637929211],
+    ['I3B','Desempenho','technical_pass','Testes de software aprovados','14 testes; amostras ausentes e desconhecidas separadas.','Fixture sintética; não é disponibilidade física.',15033557236,'1bf556b0b4009b776c54788e36abe40999a45f428bb72c1c083a32671fee020d',45639045201],
+    ['I3C','Retroalimentação','technical_pass','Testes de software aprovados','18 testes; quatro hipóteses e oito sugestões.','Agenda 01:00 planejada; não instalada, sem aplicação de parâmetros.',15034258963,'0ace4870b5d3c0acc77ab2d954cd139975f36b30663ec49d2b3522c784d5cdff',45640030043]
+  ].map(([id,label,outcome,status,result,limit,artifact,digest,run])=>({id,label,outcome,status,result,limit,artifact,digest,run}))
+}
+const expected={I1A:'marginal_pass',I1B:'failed',I1C:'failed',I1D:'null_failed',I2A:'synthetic_pass',I2B:'synthetic_pass',I2C1:'synthetic_pass',I3A:'technical_pass',I3B:'technical_pass',I3C:'technical_pass'}
+export function validateIntegratedEvidence(d){
+  return d?.scope==='archived_research_not_field'&&d.physical_actuation===false&&d.candidate_promoted===false&&d.operationally_validated===false&&d.human_acceptance==='PENDING_HUMAN'&&d.operational_decision==='abstain'&&d.scheduler_installed===false&&Array.isArray(d.studies)&&d.studies.length===Object.keys(expected).length&&new Set(d.studies.map(s=>s.id)).size===d.studies.length&&d.studies.every(s=>Object.hasOwn(expected,s.id)&&s.outcome===expected[s.id]&&Number.isSafeInteger(s.run)&&Number.isSafeInteger(s.artifact)&&(s.id==='I3A'?s.digest===null:/^[a-f0-9]{64}$/.test(s.digest))&&[s.label,s.status,s.result,s.limit].every(x=>typeof x==='string'&&x.length>0))
+}

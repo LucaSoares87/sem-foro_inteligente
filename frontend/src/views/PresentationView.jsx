@@ -1,3 +1,4 @@
+import IntegratedResearchEvidence from '../components/IntegratedResearchEvidence.jsx'
 import ResearchEvidence from '../components/ResearchEvidence.jsx'
 import PilotStatus from '../components/PilotStatus.jsx'
 import React,{useEffect,useMemo,useState} from 'react'
@@ -51,7 +52,7 @@ export default function PresentationView({data,healthStatus,realtime,intersectio
         <div key={label} className="info-block"><span>{label}</span><strong>{value||'—'}</strong><small>{label==='Decisão'?'Simulação / abstenção':'Contrato atual'}</small></div>)}
     </div>
     <p className="mt-6 text-sm text-slate-400">A plataforma mantém observado, estimado e sintético separados. A decisão operacional continua em abstenção.</p>
-  </Panel>:step.id==='evidence'?<ResearchEvidence/>:step.id==='readiness'?<PilotStatus data={data} healthStatus={healthStatus} navigate={navigate}/>:<div>
+  </Panel>:step.id==='evidence'?<div className="space-y-5"><ResearchEvidence/><IntegratedResearchEvidence/></div>:step.id==='readiness'?<PilotStatus data={data} healthStatus={healthStatus} navigate={navigate}/>:<div>
     <div className="mb-4 rounded-xl border border-amber-400/25 bg-amber-400/10 p-4 text-sm text-amber-200">
       Etapa sintética da demonstração. Não utiliza este fluxo observado para gerar tempos físicos de semáforo.
     </div>
