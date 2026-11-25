@@ -1,0 +1,40 @@
+name: PIMCAT I2C temporal and independent reference research
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_i2c_*.py'
+      - 'backend/tests/test_pimcat_i2c_validation.py'
+      - 'docs/pimcat/i2c-validation-protocol.md'
+      - '.github/workflows/pimcat-i2c.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  temporal-reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/i2c
+          python -m pip freeze > /tmp/i2c/environment.txt
+      - name: Temporal and independent reference regression
+        run: python -m pytest -q tests/test_pimcat_i2c_validation.py tests/test_pimcat_i2a_calibration.py tests/test_pimcat_c3_vision.py tests/test_pimcat_i2b_resilience.py --junitxml=/tmp/i2c/tests.xml
+      - name: Run preregistered 192 synthetic cases
+        run: python -m src.benchmarking.pimcat_i2c_temporal --output /tmp/i2c/study.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-i2c-temporal-evidence
+          path: /tmp/i2c/
+          retention-days: 30
