@@ -117,6 +117,7 @@ def serve(session, origin, port=8787):
             with session.lock:
                 if session.state=='WAITING':
                     if time.monotonic()>=waiting_deadline:session.state='EXPIRED'
-                else:session.check()
+                elif session.state=='REVIEW' and time.monotonic()>=session.deadline:
+                    session.cleanup();session.state='EXPIRED'
     finally:
         server.server_close();session.cleanup()

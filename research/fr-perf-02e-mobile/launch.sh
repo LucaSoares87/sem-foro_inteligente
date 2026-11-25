@@ -11,6 +11,9 @@ py="$(command -v python3.12 || command -v python)"
 [[ "$($py -c 'import sys;print(".".join(map(str,sys.version_info[:3])))')" == 3.12.16 ]] || { echo 'Python 3.12.16 não disponível; nenhuma mídia ou instalação iniciada.'; exit 2; }
 [[ "$(uname -m)" == x86_64 && "$(uname -s)" == Linux ]] || exit 2
 "$py" research/fr-perf-02e-mobile/mobile_host.py host-check
+# Persistent per-commit attempt marker prevents double execution on this Codespace.
+mkdir -p -m 700 "$HOME/.fr02e-mobile-attempts"
+mkdir -m 700 "$HOME/.fr02e-mobile-attempts/$commit" || { echo "Tentativa já registrada. Não repita sem auditoria."; exit 2; }
 base=$(mktemp -d /tmp/fr02c-mobile-XXXXXXXX)
 evidence="$base/evidence"; mkdir "$evidence" "$base/checkout" "$base/python-bin"
 ln -s "$py" "$base/python-bin/python"; export PATH="$base/python-bin:$PATH"

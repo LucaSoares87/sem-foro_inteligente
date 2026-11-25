@@ -34,7 +34,7 @@ def private_port(name):
 def junit_count(path):
     t=ElementTree.parse(path).getroot();s=[t] if t.tag=='testsuite' else t.findall('testsuite')
     n=sum(int(x.attrib['tests']) for x in s)
-    if n<107 or any(int(x.attrib.get(k,0)) for x in s for k in ('failures','errors','skipped')):raise ValueError('fixture regression incomplete')
+    if n<112 or any(int(x.attrib.get(k,0)) for x in s for k in ('failures','errors','skipped')):raise ValueError('fixture regression incomplete')
     return n
 
 def runtime(a):
@@ -143,6 +143,14 @@ def main():
     session=Review(root,h.check_fixture,h.private,h.acquire,h.verify,h.observe)
     print(f'http://127.0.0.1:{PORT}',flush=True)
     print(f'Abra a porta {PORT} como Private e use https://{h.name}-{PORT}.app.github.dev',flush=True)
-    serve(session,f'https://{h.name}-{PORT}.app.github.dev',PORT)
-    print('Final:',session.state,flush=True)
+    try:
+        serve(session,f'https://{h.name}-{PORT}.app.github.dev',PORT)
+    except BaseException:
+        if session.state not in ('BLOCKED','EXPIRED','REJECTED','FAILED'):session.state='FAILED'
+        raise
+    finally:
+        session.cleanup()
+        h.c.save(a.evidence/'mobile-session.json',dict(scope='mobile_session_terminal',state=session.state,source_sha256=session.digest,fixture_proof_sha256=h.proof_hash,**h.r.FLAGS))
+        print('Final:',session.state,flush=True)
+    if session.state!='COMPLETE':sys.exit(3)
 if __name__=='__main__':main()

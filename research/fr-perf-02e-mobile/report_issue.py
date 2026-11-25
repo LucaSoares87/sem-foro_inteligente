@@ -9,13 +9,15 @@ def read(p):
     return d
 
 def summary(root,commit,status):
-    f=read(root/'fixture-proof.json');o=read(root/'observation.json');source=read(root/'source-proof.json')
+    f=read(root/'fixture-proof.json');o=read(root/'observation.json');source=read(root/'source-proof.json');session=read(root/'mobile-session.json')
     out=['## FR-PERF-02E-OBS-MOBILE — relatório técnico do Codespace',f'Commit `{commit}`; exit `{status}`. Ambiente Codespace, não GitHub Actions. Nenhuma promoção; NO_ELIGIBLE_CANDIDATE da 02C preservado.']
-    for name in ('fixture-proof.json','source-proof.json','review-private.json','observation.json'):
+    for name in ('fixture-proof.json','source-proof.json','review-private.json','observation.json','mobile-session.json'):
         p=root/name
         if p.is_file():out.append(f'`{name}` SHA256 `{hashlib.sha256(p.read_bytes()).hexdigest()}`')
     if f:out.append(f'Fixtures: {f["tests"]} testes, passed={f["passed"]}; IPC 2T plain/profile.')
     if source:out.append(f'Fonte SHA256 `{source["sha256"]}`; {len(source["records"])} entradas congeladas.')
+    if session:out.append(f'Estado terminal da sessão: {session["state"]}.')
+    if not o:out.append('Observação não executada ou relatório não produzido; não interpretar como aprovação.')
     if o:
         out.append(f'Observação complete={o["complete"]}; medições {sum(len(b["rows"]) for b in o["blocks"])}; decisão {o["decision"]}.')
         for b in o['blocks']:

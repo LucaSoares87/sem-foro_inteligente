@@ -16,9 +16,9 @@ def test_identity(monkeypatch):
     monkeypatch.setattr(h,'gh_json',lambda *a:{'id':0} if a[-1]=='user' else row)
     with pytest.raises(ValueError):h.host_identity()
 
-@pytest.mark.parametrize('n,failed',[(106,0),(107,1),(107,0)])
+@pytest.mark.parametrize('n,failed',[(111,0),(112,1),(112,0)])
 def test_junit(tmp_path,n,failed):
     p=tmp_path/'j.xml';p.write_text(f'<testsuite tests="{n}" failures="{failed}" errors="0" skipped="0"/>')
-    if n<107 or failed:
+    if n<112 or failed:
         with pytest.raises(ValueError):h.junit_count(p)
     else:assert h.junit_count(p)==n
