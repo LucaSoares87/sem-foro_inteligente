@@ -1,0 +1,86 @@
+name: SI-10 CPU performance
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/si10_cpu_profile.py'
+      - 'backend/tests/test_si10_cpu_profile.py'
+      - '.github/workflows/si10-cpu-research.yml'
+      - 'docs/si10/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpu-profile:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing research runtime
+        run: python -m pip install -r requirements-dev.txt gdown==5.2.0
+      - name: Validate parity and previous experiment contracts
+        run: python -m pytest -q tests/test_si10_cpu_profile.py tests/test_si09f_validation.py tests/test_si09e_diagnostics.py tests/test_si09d_preflight.py tests/test_benchmarking.py
+      - name: Acquire official source videos and pinned model
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si10-private /tmp/si10-model /tmp/si10-results
+          gdown 'https://drive.google.com/uc?id=11iEaThdLlOHeIrO53eZUtlyNPu0Irg3X' -O /tmp/si10-private/Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4
+          gdown 'https://drive.google.com/uc?id=1ze-CefZz5lwA2cdhXVgVlfndyoPH5H6Q' -O /tmp/si10-private/Bellevue_116th_NE12th__2017-09-11_11-08-33.mp4
+          python -m src.vision.model_artifacts --output /tmp/si10-model/yolox_s.onnx --spec-output /tmp/si10-model/spec.json
+      - name: Profile same detector sequentially on both cases
+        run: |
+          set -euo pipefail
+          for case in morning_0708 morning_1108; do
+            if [ "$case" = morning_0708 ]; then
+              file=Bellevue_116th_NE12th__2017-09-11_07-08-32.mp4
+            else
+              file=Bellevue_116th_NE12th__2017-09-11_11-08-33.mp4
+            fi
+            python -m src.benchmarking.si10_cpu_profile --case "$case" --source "/tmp/si10-private/$file" --model-spec /tmp/si10-model/spec.json --model-root /tmp/si10-model --output "/tmp/si10-results/$case.json"
+          done
+      - name: Check report scope and compare repeatable candidates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from src.archive.store import fingerprint
+          root=Path('/tmp/si10-results')
+          reports=[json.loads((root/f'{c}.json').read_text()) for c in ('morning_0708','morning_1108')]
+          for r in reports:
+              body=dict(r); digest=body.pop('result_sha256')
+              assert digest==fingerprint(body)
+              assert r['scope']=='offline_cpu_microbenchmark_not_live'
+              assert all(r[k] is False for k in ('candidate_promoted','ground_truth_validated','operationally_validated','physical_actuation','commercial_demo_authorized'))
+              assert r['engineering_recommended_min_fps'] is None
+              assert len(r['sample_indices_zero_based_source'])==32
+              assert all(x['frames']==32 for x in r['runs'])
+          common=set.intersection(*[{s['threads'] for s in r['summary']} for r in reports])
+          candidates=[]
+          for n in sorted(common-{1}):
+              rows=[{s['threads']:s for s in r['summary']} for r in reports]
+              gain=[(d[1]['median_trial_mean_ms']-d[n]['median_trial_mean_ms'])/d[1]['median_trial_mean_ms'] for d in rows]
+              parity=all(d[n]['all_trials_parity'] and d[1]['all_trials_parity'] for d in rows)
+              candidates.append({'threads':n,'relative_mean_latency_reduction_by_case':gain,'parity_all':parity,
+                  'passes_microbenchmark_only':parity and min(gain)>=.10,
+                  'p95_within_200ms_both':all(d[n]['worst_trial_p95_ms']<=200 for d in rows)})
+          result={'scope':'microbenchmark_only','candidates':candidates,'candidate_promoted':False,
+                  'live_throughput_validated':False,'accuracy_validated':False,'adaptive_fps_enabled':False,
+                  'operationally_validated':False,'physical_actuation':False}
+          (root/'comparison.json').write_text(json.dumps(result,indent=2,sort_keys=True))
+          PY
+      - name: Preserve aggregate metrics only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si10-cpu-aggregate-evidence
+          path: /tmp/si10-results/*.json
+          if-no-files-found: ignore
+          retention-days: 30
