@@ -1,0 +1,70 @@
+name: PIMCAT C3 pedestrian perception
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_c3*'
+      - 'backend/tests/test_pimcat_c3_vision.py'
+      - 'docs/pimcat/c3-perception-protocol.md'
+      - '.github/workflows/pimcat-c3-vision.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  perception:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: python -m pip install -r requirements-dev.txt gdown==5.2.0
+      - name: Test isolated perception and existing multimodal logic
+        run: python -m pytest -q tests/test_pimcat_c3_vision.py tests/test_pimcat_midblock.py tests/test_pimcat_local.py
+      - name: Acquire research source and verified model
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/c3-private /tmp/c3-results
+          python -m pip freeze > /tmp/c3-results/environment.txt
+          gdown 'https://drive.google.com/uc?id=1c3lvwz7FfTnTEVyLaopPg6NjpJ2pAn7Q' -O /tmp/c3-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4
+          python -m src.vision.model_artifacts --output /tmp/c3-private/yolox_s.onnx
+          python -m src.benchmarking.si09d_preflight --source /tmp/c3-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4 --output /tmp/c3-private/clip.mkv --evidence /tmp/c3-results/preflight.json --seconds 8
+      - name: Actual inference and paired temporal sampling
+        run: python -m src.benchmarking.pimcat_c3_study --video /tmp/c3-private/clip.mkv --model /tmp/c3-private/yolox_s.onnx --preflight /tmp/c3-results/preflight.json --output /tmp/c3-results
+      - name: Verify evidence and blocked reference gate
+        run: |
+          python - <<'PY'
+          import json
+          from src.archive.store import fingerprint
+          from pathlib import Path
+          root=Path('/tmp/c3-results')
+          d=json.loads((root/'study.json').read_text());sha=d.pop('result_sha256')
+          assert fingerprint(d)==sha
+          assert d['native_inferences']==240 and d['reference_frames']==40
+          assert [d['fps_results'][str(f)]['sampled_frames'] for f in (30,15,10,5)]==[240,120,80,40]
+          assert d['accuracy_metrics'] is None and d['precision_state']=='BLOCKED_BY_INDEPENDENT_ANNOTATION'
+          assert d['operational_decision']=='abstain'
+          assert all(d[k] is False for k in ('physical_actuation','candidate_promoted','operationally_validated','commercial_demo_authorized','sustained_fps_measured'))
+          for n in ('annotation-a.json','annotation-b.json'):
+              a=json.loads((root/n).read_text());assert len(a['frames'])==40
+              assert a['status']=='DRAFT_NOT_REFERENCE' and all(not x['reviewed'] and x['boxes'] is None for x in a['frames'])
+          print(json.dumps(d,indent=2))
+          PY
+      - name: Preserve aggregate and blank reference evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pimcat-c3-evidence
+          path: /tmp/c3-results/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove private media
+        if: always()
+        run: rm -rf /tmp/c3-private
