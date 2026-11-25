@@ -21,6 +21,7 @@ FAMILIES={
     "balanced":((7,.25,.65,30),(8,.25,.65,30)),
     "dominant_growth":((3,.12,.75,24),(18,.60,.75,30)),
     "near_storage":((4,.20,.65,24),(23,.30,.70,28)),
+    "feasible_near_boundary":((3,.15,.65,24),(15,.50,.75,24)),
     "minor_no_net_clearance":((5,.65,.45,25),(12,.20,.70,40)),
     "burst_uncertainty":((3,.20,.70,24),(15,.35,.70,32)),
     "empty":((0,0.,.70,24),(0,0.,.70,32)),
@@ -148,6 +149,8 @@ def summarize(rows):
         "dynamic_queue_area_losses_vs_major":dynamic_losses,
         "dynamic_queue_area_ties_vs_major":len(rows)-dynamic_wins-dynamic_losses,
         "minor_feasible_cases":len(feasible),"minor_feasible_critical_before_major_service":len(critical),
+        "chosen_minor_cases":sum(r["preference"]=="minor_first" for r in rows),
+        "chosen_minor_critical_before_major_service":sum(r["preference"]=="minor_first" and r["metrics"]["dynamic_x"]["second_group_critical_before_service"] for r in rows),
         "preferences":{p:sum(r["preference"]==p for r in rows) for p in ("minor_first","major_first","no_material_advantage","abstain")}}
 
 
