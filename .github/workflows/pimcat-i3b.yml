@@ -1,0 +1,40 @@
+name: PIMCAT I3B performance intelligence research
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/pimcat_i3b_performance.py'
+      - 'backend/tests/test_pimcat_i3b_performance.py'
+      - 'docs/pimcat/i3b-performance-protocol.md'
+      - '.github/workflows/pimcat-i3b.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  performance-history:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/i3b
+          python -m pip freeze > /tmp/i3b/environment.txt
+      - name: Verify performance history and original regressions
+        run: python -m pytest -q tests/test_pimcat_i3b_performance.py tests/test_pimcat_i3_history.py tests/test_pimcat_f_daily.py tests/test_pimcat_i2b_resilience.py --junitxml=/tmp/i3b/tests.xml
+      - name: Produce preregistered synthetic evidence
+        run: python -m src.benchmarking.pimcat_i3b_performance --fixture --output /tmp/i3b/study.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-i3b-performance-evidence
+          path: /tmp/i3b/
+          retention-days: 30
