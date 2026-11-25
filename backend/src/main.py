@@ -48,6 +48,7 @@ from src.queueing.service import QueueService
 from src.queueing.store import QueueStore
 from src.optimization.routes import router as optimization_router
 from src.optimization.service import OptimizationService
+from src.reporting.routes import router as reporting_router
 
 log = logging.getLogger(__name__)
 
@@ -153,6 +154,7 @@ def create_app(settings=None):
     app.include_router(validation_router)
     app.include_router(queue_router)
     app.include_router(optimization_router)
+    app.include_router(reporting_router)
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception):
