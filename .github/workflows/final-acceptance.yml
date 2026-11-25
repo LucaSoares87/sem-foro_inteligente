@@ -1,0 +1,82 @@
+name: FINAL-ACCEPTANCE rehearsal
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - 'ops/final_acceptance.py'
+      - 'ops/test_final_acceptance.py'
+      - 'docs/final-acceptance/**'
+      - '.github/workflows/final-acceptance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SI12_EVIDENCE_DIR: /tmp/final-acceptance/browser
+      VIDEO_SOURCES_JSON: deliberately-invalid
+      VALIDATION_EVIDENCE_JSON: deliberately-invalid
+      AUTH_MODE: proxy_headers
+      POSTGRES_PASSWORD: deliberately-invalid
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test isolation and validate Codespaces configuration
+        run: |
+          python -m unittest discover -s ops -p test_final_acceptance.py -v
+          python -m json.tool .devcontainer/devcontainer.json >/dev/null
+          docker manifest inspect mcr.microsoft.com/devcontainers/base:noble >/dev/null
+          mkdir -p /tmp/final-acceptance
+      - name: Install browser and preserve existing frontend tests
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+          npm run build
+          npm install --no-save --package-lock=false playwright@1.51.1 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Launch exactly the human acceptance command
+        run: python ops/final_acceptance.py start
+      - name: Check six routes, five reproducible presets and seven blocked gates
+        run: python ops/final_acceptance.py test --output /tmp/final-acceptance/api-results.json
+      - name: Exercise real browser across all six views
+        working-directory: frontend
+        run: node tests/pilot-browser.mjs
+      - name: Verify evidence without signing human acceptance
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('/tmp/final-acceptance')
+          a=json.loads((root/'api-results.json').read_text())
+          b=json.loads((root/'browser/browser-results.json').read_text())
+          assert len(a['routes_http'])==6 and len(a['presets'])==5
+          assert len(a['missing_field_gates'])==7 and a['human_acceptance']=='PENDING_HUMAN'
+          assert a['physical_actuation'] is False and a['pilot_ready'] is False
+          assert b['passed'] and len(b['checks'])==7 and not b['page_errors']
+          assert b['field_validation'] is False and b['physical_actuation'] is False
+          manifest=[{'file':str(f.relative_to(root)),'sha256':hashlib.sha256(f.read_bytes()).hexdigest()}
+                    for f in sorted(root.rglob('*')) if f.is_file()]
+          (root/'manifest.json').write_text(json.dumps({'scope':'automated_rehearsal_not_human_acceptance','files':manifest},indent=2))
+          PY
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-acceptance-rehearsal
+          path: /tmp/final-acceptance/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop dedicated demo only
+        if: always()
+        run: python ops/final_acceptance.py stop
