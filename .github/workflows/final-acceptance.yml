@@ -49,6 +49,15 @@ jobs:
         run: python ops/final_acceptance.py start
       - name: Check six routes, five reproducible presets and seven blocked gates
         run: python ops/final_acceptance.py test --output /tmp/final-acceptance/api-results.json
+      - name: Verify unknown daily context stays unavailable
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'ops')
+          from final_acceptance import get
+          r=get('/api/v1/reporting/intersections/UNKNOWN/daily?day=2026-01-01',expected=404)
+          assert r['detail']=='intersection_not_found'
+          PY
       - name: Exercise real browser across all six views
         working-directory: frontend
         run: node tests/pilot-browser.mjs
@@ -63,7 +72,8 @@ jobs:
           assert len(a['routes_http'])==6 and len(a['presets'])==5
           assert len(a['missing_field_gates'])==7 and a['human_acceptance']=='PENDING_HUMAN'
           assert a['physical_actuation'] is False and a['pilot_ready'] is False
-          assert b['passed'] and len(b['checks'])==7 and not b['page_errors']
+          assert b['passed'] and not b['page_errors']
+          assert set(b['checks'])=={'real_health_and_blocked_gate','executive_and_videowall','operations_and_invalid_context','laboratory_real_demo_and_archived_comparators','pimcat_f_reports_and_research','guided_seven_steps','homologation_no_false_ready','mobile_no_page_overflow'} and len(b['checks'])==8
           assert b['field_validation'] is False and b['physical_actuation'] is False
           manifest=[{'file':str(f.relative_to(root)),'sha256':hashlib.sha256(f.read_bytes()).hexdigest()}
                     for f in sorted(root.rglob('*')) if f.is_file()]

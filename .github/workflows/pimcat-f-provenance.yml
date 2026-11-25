@@ -1,0 +1,48 @@
+name: PIMCAT F source provenance
+on:
+  pull_request:
+    paths:
+      - 'frontend/src/app/pimcatEvidence.json'
+      - 'backend/scripts/verify_pimcat_f_evidence.py'
+      - '.github/workflows/pimcat-f-provenance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-archived-sources:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download exact source artifacts and verify extract
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pimcat-f-sources /tmp/pimcat-f-verification
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          ledger=json.loads(Path('frontend/src/app/pimcatEvidence.json').read_text())
+          with open('/tmp/pimcat-f-sources/manifest.tsv','w') as f:
+              for s in ledger['studies']:
+                  assert s['key'] in ('si11a','si11b','si11c','si11d','c1','c2','c3','d','e')
+                  assert type(s['artifact']) is int
+                  f.write(f"{s['key']}\t{s['artifact']}\n")
+          PY
+          while IFS=$'\t' read -r key id; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "/tmp/pimcat-f-sources/pimcat-f-$key.zip"
+          done < /tmp/pimcat-f-sources/manifest.tsv
+          python backend/scripts/verify_pimcat_f_evidence.py /tmp/pimcat-f-sources | tee /tmp/pimcat-f-verification/verification.txt
+          sha256sum frontend/src/app/pimcatEvidence.json >> /tmp/pimcat-f-verification/verification.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pimcat-f-provenance
+          path: /tmp/pimcat-f-verification/
+          if-no-files-found: warn
+          retention-days: 30

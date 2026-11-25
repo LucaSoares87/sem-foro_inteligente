@@ -1,0 +1,1078 @@
+{
+  "schema_version": 1,
+  "scope": "archived_research_extract_not_live",
+  "physical_actuation": false,
+  "candidate_promoted": false,
+  "c3_precision": "BLOCKED_BY_INDEPENDENT_ANNOTATION",
+  "studies": [
+    {
+      "id": "SI-11A",
+      "key": "si11a",
+      "run": 45518223607,
+      "artifact": 14978717511,
+      "zip_sha256": "31784467204530ae4579dffc3704e41c597345e6ba32166547d04082f15f12fc",
+      "report_sha256": "e8811eb37efcaa327ff834557a4f707d319c3c7a50cd1943550492e3b2d153d4",
+      "cases": 320,
+      "trajectories": 1600,
+      "horizon_seconds": 60,
+      "research_gate_passed": null,
+      "origin": "synthetic",
+      "note": "X original: 26/160 escolhas pela fila menor atingiram criticidade da dominante. Sem gate binário.",
+      "fields": [
+        "queue_area_vehicle_seconds",
+        "departed",
+        "critical_exposure_vehicle_seconds",
+        "max_observed_wait_seconds",
+        "remaining"
+      ],
+      "rows": [
+        [
+          "dynamic_x",
+          1072.63125,
+          29.759375,
+          58.025468749999995,
+          45.2875,
+          18.496875
+        ],
+        [
+          "fixed_a",
+          1169.35625,
+          26.95625,
+          94.08500000000001,
+          43.9625,
+          21.3
+        ],
+        [
+          "fixed_b",
+          1154.053125,
+          27.090625,
+          82.37515625,
+          44.50625,
+          21.165625
+        ],
+        [
+          "major_first",
+          1296.86875,
+          18.728125,
+          183.66046875,
+          49.165625,
+          29.528125
+        ],
+        [
+          "minor_first",
+          1056.515625,
+          31.91875,
+          18.5628125,
+          44.759375,
+          16.3375
+        ]
+      ],
+      "gates": {},
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "SI-11B",
+      "key": "si11b",
+      "run": 45519416610,
+      "artifact": 14977858569,
+      "zip_sha256": "7306f8880b9ef51570f586ed1128c3fad598635072ecd2ad9e276ee257958e76",
+      "report_sha256": "e9568419d95e33d50850f174e453c30e7b18f8d4af6792b26f3fcbb3805240fc",
+      "cases": 640,
+      "trajectories": 3840,
+      "horizon_seconds": 60,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "X robusto piorou vazão, fila e exposição crítica; não promover.",
+      "fields": [
+        "queue_area_vehicle_seconds",
+        "departed",
+        "critical_exposure_vehicle_seconds",
+        "overflow_exposure_vehicle_seconds",
+        "remaining"
+      ],
+      "rows": [
+        [
+          "fixed_a",
+          1089.2,
+          27.409375,
+          72.07859375000001,
+          32.7984375,
+          19.44375
+        ],
+        [
+          "fixed_b",
+          1068.9859375,
+          27.6875,
+          67.838828125,
+          29.909375,
+          19.165625
+        ],
+        [
+          "major_first",
+          1221.4796875,
+          19.2421875,
+          139.15000000000003,
+          83.6546875,
+          27.6109375
+        ],
+        [
+          "minor_first",
+          963.496875,
+          31.884375,
+          30.074453125000012,
+          12.5203125,
+          14.96875
+        ],
+        [
+          "original_x",
+          952.95625,
+          30.675,
+          31.631406249999998,
+          14.521875,
+          16.178125
+        ],
+        [
+          "robust_x",
+          1140.36875,
+          23.06875,
+          139.14421875,
+          83.6546875,
+          23.784375
+        ]
+      ],
+      "gates": {
+        "familiar_new_seeds": false,
+        "novel_families": false
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "SI-11C",
+      "key": "si11c",
+      "run": 45520433030,
+      "artifact": 14978819967,
+      "zip_sha256": "2a25e3f409cccf161237097c455beae9458818095dc08294917edcbcae3c7aa0",
+      "report_sha256": "9396cab8555347b70fc2d962a1d2c0772d2b2046c31fc362d3ea5e7e6603643c",
+      "cases": 320,
+      "trajectories": 1920,
+      "horizon_seconds": 240,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "Ganho incremental de X pequeno; coorte inédita reprovada.",
+      "fields": [
+        "queue_area_vehicle_seconds",
+        "departed",
+        "critical_exposure_vehicle_seconds",
+        "overflow_exposure_vehicle_seconds",
+        "remaining"
+      ],
+      "rows": [
+        [
+          "demand_proportional",
+          4108.721875,
+          112.690625,
+          434.42750000000007,
+          347.6875,
+          22.709375
+        ],
+        [
+          "fixed_alternating",
+          5744.678125,
+          102.959375,
+          1298.5401562499997,
+          1077.5625,
+          32.440625
+        ],
+        [
+          "original_x",
+          5127.41875,
+          104.578125,
+          1200.36171875,
+          1046.93125,
+          30.821875
+        ],
+        [
+          "predictive_no_x",
+          4070.609375,
+          112.534375,
+          436.214375,
+          346.8625,
+          22.865625
+        ],
+        [
+          "predictive_x",
+          4064.96875,
+          112.646875,
+          428.050625,
+          338.528125,
+          22.753125
+        ],
+        [
+          "robust_x",
+          6859.89375,
+          88.6125,
+          2564.914531250001,
+          2230.15,
+          46.7875
+        ]
+      ],
+      "gates": {
+        "novel_shift": false,
+        "replication_new_seeds": true
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "SI-11D",
+      "key": "si11d",
+      "run": 45521531550,
+      "artifact": 14979908461,
+      "zip_sha256": "b2356669747162a8c05a84aadf014b5e7651bc5b0af99812e5578a8e3f69c23a",
+      "report_sha256": "0dc2b6e1aca564dd90f55c57c9c3712cc6fcb8a697fe38a69cdc1dd8868fa26e",
+      "cases": 32,
+      "trajectories": 128,
+      "horizon_seconds": 240,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "SUMO: preditivos com/sem X idênticos; proporcional mais competitivo.",
+      "fields": [
+        "queue_area_with_pending_vehicle_seconds",
+        "departed_network",
+        "critical_occupancy_exposure_vehicle_seconds",
+        "uninserted"
+      ],
+      "rows": [
+        [
+          "demand_proportional",
+          2808.1875,
+          78.59375,
+          40.54999999999998,
+          10.4375
+        ],
+        [
+          "fixed_alternating",
+          4193.375,
+          70.875,
+          108.42343749999992,
+          17.65625
+        ],
+        [
+          "predictive_no_x",
+          2935.40625,
+          78.59375,
+          44.86093749999998,
+          11.09375
+        ],
+        [
+          "predictive_x",
+          2935.40625,
+          78.59375,
+          44.86093749999998,
+          11.09375
+        ]
+      ],
+      "gates": {
+        "shift_and_storage": false,
+        "steady_long": false
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "PIMCAT C1",
+      "key": "c1",
+      "run": 45603194823,
+      "artifact": 15015654486,
+      "zip_sha256": "010fe8044827a8ab956ebe16b6721c71989125554bba216bf95900fd6868b0df",
+      "report_sha256": "6d0cf15ac891cb59c29bfe3a671a69a543271de3f9e31392bbce2f61ef89776b",
+      "cases": 96,
+      "trajectories": 672,
+      "horizon_seconds": 480,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "Xv original + Xp piorou atraso frente à proporcional. Violações de prazo persistiram.",
+      "fields": [
+        "person_area",
+        "vehicle_departed",
+        "pedestrian_completed",
+        "total_pedestrian_deadline_violations",
+        "total_vehicle_deadline_violations",
+        "pedestrian_waiting"
+      ],
+      "rows": [
+        [
+          "actuated",
+          36806.234375,
+          133.82291666666666,
+          27.052083333333332,
+          714,
+          3506,
+          12.677083333333334
+        ],
+        [
+          "compatible",
+          19513.59375,
+          166.63541666666666,
+          30.427083333333332,
+          434,
+          1898,
+          9.177083333333334
+        ],
+        [
+          "fixed",
+          29645.734375,
+          137.58333333333334,
+          26.552083333333332,
+          1293,
+          2063,
+          12.958333333333334
+        ],
+        [
+          "grouped",
+          32843.317708333336,
+          139.73958333333334,
+          27.458333333333332,
+          613,
+          2699,
+          12.3125
+        ],
+        [
+          "integrated_xp",
+          22092.8125,
+          160.9375,
+          31.083333333333332,
+          443,
+          1995,
+          8.625
+        ],
+        [
+          "integrated_xp_no_xv",
+          19500.078125,
+          166.13541666666666,
+          31.177083333333332,
+          434,
+          1898,
+          8.520833333333334
+        ],
+        [
+          "proportional",
+          19454.463541666668,
+          166.76041666666666,
+          30.729166666666668,
+          434,
+          1898,
+          8.875
+        ]
+      ],
+      "gates": {
+        "integrated_xp/base": false,
+        "integrated_xp/stress": false,
+        "integrated_xp_no_xv/base": false,
+        "integrated_xp_no_xv/stress": true
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "PIMCAT C2 / RP-07",
+      "key": "c2",
+      "run": 45606860145,
+      "artifact": 15017473787,
+      "zip_sha256": "80087a83b6241006e3e7b8bf7437fa6146b34c61b0aab5470059a8eb05a6f4b8",
+      "report_sha256": "16b433a0ec84d18a533c820016a4617d763d3387ad02af66bf3eb9c83da9cd46",
+      "cases": 32,
+      "trajectories": 192,
+      "horizon_seconds": 360,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "SUMO: carona mais competitiva; RP-07 sem demanda 360s de verde nas quatro sementes; pedido único concluído. Candidatos reprovados.",
+      "fields": [
+        "person_area",
+        "vehicles_exited",
+        "pedestrians_completed",
+        "total_pedestrian_deadline_violations",
+        "total_vehicle_deadline_violations",
+        "vehicles_uninserted",
+        "worst_pedestrian_max_wait"
+      ],
+      "rows": [
+        [
+          "actuated",
+          28937.0625,
+          109.59375,
+          38.84375,
+          2,
+          1037,
+          75.15625,
+          132
+        ],
+        [
+          "compatible",
+          14363.0625,
+          154.9375,
+          43.4375,
+          0,
+          1,
+          34.40625,
+          110
+        ],
+        [
+          "fixed",
+          22941.578125,
+          124.125,
+          41.8125,
+          0,
+          439,
+          56.03125,
+          93
+        ],
+        [
+          "predictive_xp",
+          14511.078125,
+          154.5,
+          43.34375,
+          0,
+          1,
+          35,
+          68
+        ],
+        [
+          "predictive_xp_xv",
+          15199.96875,
+          151.90625,
+          43.03125,
+          0,
+          16,
+          37.5625,
+          68
+        ],
+        [
+          "proportional",
+          15819.4375,
+          150.75,
+          42.78125,
+          0,
+          15,
+          38.96875,
+          63
+        ]
+      ],
+      "gates": {
+        "predictive_xp/cross": false,
+        "predictive_xp/mid": false,
+        "predictive_xp/stress": false,
+        "predictive_xp_xv/cross": false,
+        "predictive_xp_xv/mid": false,
+        "predictive_xp_xv/stress": false
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "PIMCAT C3",
+      "key": "c3",
+      "run": 45610070006,
+      "artifact": 15019996494,
+      "zip_sha256": "57f1ad2603bca2f57972accb608336837fc1a4cbff78e003a50be0724d51778b",
+      "report_sha256": "63837e6a48be940488bcd3f7742ea521115a2afe46a9c615840f615de636a403",
+      "cases": null,
+      "trajectories": null,
+      "horizon_seconds": 8,
+      "research_gate_passed": null,
+      "origin": "external_real_replay",
+      "note": "BLOCKED_BY_INDEPENDENT_ANNOTATION: 240 inferências, 40 frames de referência sem anotação independente, não há precisão, intenção ou ocupação validadas. Subamostras do mesmo vídeo; capacidade FPS estimada, não sustentada.",
+      "fields": [
+        "sampled_frames",
+        "person_detections",
+        "low_confidence_candidates",
+        "inference_mean_ms",
+        "inference_p95_ms",
+        "serial_capacity_fps_estimate"
+      ],
+      "rows": [
+        [
+          "10",
+          80,
+          1,
+          43,
+          413.5511366874988,
+          422.1531270000014,
+          2.418080646591604
+        ],
+        [
+          "15",
+          120,
+          1,
+          63,
+          414.94346515833183,
+          430.28405600000497,
+          2.4099668604695954
+        ],
+        [
+          "30",
+          240,
+          3,
+          124,
+          414.2221232208324,
+          425.44507799999565,
+          2.414163667127153
+        ],
+        [
+          "5",
+          40,
+          1,
+          22,
+          413.9578390749989,
+          422.03080499999146,
+          2.4157049477176944
+        ]
+      ],
+      "gates": {},
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "PIMCAT D",
+      "key": "d",
+      "run": 45611471974,
+      "artifact": 15020536452,
+      "zip_sha256": "d0b80e93a971cfd1482ddbac6f3c32e8271011feae2d0fe14d32c033901b824b",
+      "report_sha256": "855853fff963813dbfc38471302d43ba401449bd6bb18933f77cf093d8ad1677",
+      "cases": 32,
+      "trajectories": 128,
+      "horizon_seconds": 600,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "ETA abaixo de 70%; armazenamento reduz exposição, mas não elimina entradas críticas. Viagens completas excluem censurados.",
+      "fields": [
+        "person_area",
+        "vehicle_exited",
+        "pedestrian_completed",
+        "critical_exposure",
+        "vehicle_uninserted",
+        "total_vehicle_deadline_violations",
+        "total_pedestrian_deadline_violations",
+        "eta_coverage",
+        "eta_mae_seconds",
+        "mean_corridor_travel_seconds",
+        "mean_corridor_stops",
+        "corridor_speed_cv"
+      ],
+      "rows": [
+        [
+          "adaptive_eta",
+          42373.765625,
+          347.96875,
+          114.1875,
+          115.69687500000006,
+          61.0625,
+          1081,
+          0,
+          0.47494184817086066,
+          13.791287798688941,
+          143.32506335628767,
+          3.1035975545134264,
+          1.2179441356072735
+        ],
+        [
+          "adaptive_eta_storage",
+          42263.078125,
+          348.59375,
+          114.0625,
+          54.806250000000006,
+          61.6875,
+          1083,
+          0,
+          0.46655376799322607,
+          12.073878069432684,
+          143.40019633501106,
+          3.12543806072179,
+          1.2069273626273531
+        ],
+        [
+          "fixed_offset",
+          43913.734375,
+          343.78125,
+          114,
+          139.26718749999995,
+          62.59375,
+          1090,
+          0,
+          0.45565217391304347,
+          15.443695652173913,
+          147.86496354525153,
+          3.2583568995848853,
+          1.2811486009619648
+        ],
+        [
+          "independent",
+          42984.703125,
+          346.125,
+          114.21875,
+          115.73593750000006,
+          61.15625,
+          1084,
+          0,
+          0.4130668385987535,
+          16.186331399097355,
+          147.26320222721782,
+          3.2546600243200334,
+          1.2514315372555138
+        ]
+      ],
+      "gates": {
+        "adaptive_eta/two": false,
+        "adaptive_eta/three": false,
+        "adaptive_eta/stress": false,
+        "adaptive_eta_storage/two": false,
+        "adaptive_eta_storage/three": false,
+        "adaptive_eta_storage/stress": false
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    },
+    {
+      "id": "PIMCAT E",
+      "key": "e",
+      "run": 45613009581,
+      "artifact": 15020282567,
+      "zip_sha256": "3e1b294f3a3078c5962cc06627db0bb4fc6cec3053838cc187ca7d720086ca37",
+      "report_sha256": "8a3d406048533c2c3a02ef8b9f7cea596b7ca7dec6dd6990b3a2ab4894d3c384",
+      "cases": 24,
+      "trajectories": 96,
+      "horizon_seconds": 600,
+      "research_gate_passed": false,
+      "origin": "synthetic",
+      "note": "Armazenamento reduz criticidade interna, mas aumenta atraso, não inseridos e espera veicular. Sem eliminação de spillback. Viagens completas excluem censurados.",
+      "fields": [
+        "person_area",
+        "vehicle_exited",
+        "pedestrian_completed",
+        "critical_exposure",
+        "total_critical_entries",
+        "vehicle_uninserted",
+        "total_vehicle_deadline_violations",
+        "total_pedestrian_deadline_violations",
+        "mean_travel_seconds",
+        "mean_stops",
+        "speed_cv",
+        "total_fallback_ticks"
+      ],
+      "rows": [
+        [
+          "global_pressure",
+          116591.5,
+          488.7916666666667,
+          279.9583333333333,
+          251.1958333333322,
+          262,
+          177.79166666666666,
+          3406,
+          0,
+          118.12486342870618,
+          2.497161475423302,
+          1.1339955480136021,
+          720
+        ],
+        [
+          "global_storage",
+          120962.4375,
+          475.3333333333333,
+          279.9583333333333,
+          173.4854166666663,
+          178,
+          191.29166666666666,
+          3693,
+          0,
+          121.1813996538174,
+          2.5509494870229195,
+          1.1594619151397616,
+          720
+        ],
+        [
+          "local_demand",
+          115247.47916666667,
+          494.2916666666667,
+          279.7916666666667,
+          398.21458333333095,
+          641,
+          173.04166666666666,
+          3380,
+          0,
+          121.06243313500751,
+          2.602021125221944,
+          1.136777649541377,
+          0
+        ],
+        [
+          "local_pressure",
+          117070.20833333333,
+          487.5,
+          280.25,
+          249.39999999999895,
+          230,
+          179.625,
+          3430,
+          0,
+          117.91329065953319,
+          2.4604753433498785,
+          1.137549835618452,
+          0
+        ]
+      ],
+      "gates": {
+        "global_pressure/two_columns": false,
+        "global_pressure/three_columns": false,
+        "global_pressure/stress": false,
+        "global_pressure/strict_spillback_prevention": false,
+        "global_storage/two_columns": false,
+        "global_storage/three_columns": false,
+        "global_storage/stress": false,
+        "global_storage/strict_spillback_prevention": false
+      },
+      "candidate_promoted": false,
+      "operationally_validated": false,
+      "physical_actuation": false
+    }
+  ],
+  "criticity_history": {
+    "study": "PIMCAT E",
+    "family": "outage",
+    "seed": 9100,
+    "policy": "global_storage",
+    "origin": "synthetic",
+    "nodes": {
+      "E0": [
+        380,
+        0
+      ],
+      "E1": [
+        380,
+        100
+      ],
+      "J0_0": [
+        0,
+        0
+      ],
+      "J0_1": [
+        0,
+        100
+      ],
+      "J1_0": [
+        100,
+        0
+      ],
+      "J1_1": [
+        100,
+        100
+      ],
+      "J2_0": [
+        200,
+        0
+      ],
+      "J2_1": [
+        200,
+        100
+      ],
+      "M": [
+        50,
+        0
+      ],
+      "N0": [
+        0,
+        280
+      ],
+      "N1": [
+        100,
+        280
+      ],
+      "N2": [
+        200,
+        280
+      ],
+      "S0": [
+        0,
+        -180
+      ],
+      "S1": [
+        100,
+        -180
+      ],
+      "S2": [
+        200,
+        -180
+      ],
+      "W0": [
+        -180,
+        0
+      ],
+      "W1": [
+        -180,
+        100
+      ]
+    },
+    "edges": [
+      [
+        "a0_0",
+        "W0",
+        "J0_0",
+        23
+      ],
+      [
+        "a0_1",
+        "J0_0",
+        "M",
+        5
+      ],
+      [
+        "a0_2",
+        "M",
+        "J1_0",
+        5
+      ],
+      [
+        "a0_3",
+        "J1_0",
+        "J2_0",
+        11
+      ],
+      [
+        "a0_4",
+        "J2_0",
+        "E0",
+        23
+      ],
+      [
+        "a1_0",
+        "W1",
+        "J0_1",
+        23
+      ],
+      [
+        "a1_1",
+        "J0_1",
+        "J1_1",
+        11
+      ],
+      [
+        "a1_2",
+        "J1_1",
+        "J2_1",
+        11
+      ],
+      [
+        "a1_3",
+        "J2_1",
+        "E1",
+        23
+      ],
+      [
+        "b0_0",
+        "S0",
+        "J0_0",
+        23
+      ],
+      [
+        "b0_1",
+        "J0_0",
+        "J0_1",
+        11
+      ],
+      [
+        "b0_2",
+        "J0_1",
+        "N0",
+        23
+      ],
+      [
+        "b1_0",
+        "S1",
+        "J1_0",
+        23
+      ],
+      [
+        "b1_1",
+        "J1_0",
+        "J1_1",
+        11
+      ],
+      [
+        "b1_2",
+        "J1_1",
+        "N1",
+        23
+      ],
+      [
+        "b2_0",
+        "S2",
+        "J2_0",
+        23
+      ],
+      [
+        "b2_1",
+        "J2_0",
+        "J2_1",
+        11
+      ],
+      [
+        "b2_2",
+        "J2_1",
+        "N2",
+        23
+      ]
+    ],
+    "snapshots": [
+      {
+        "tick": 175,
+        "central_available": true,
+        "index": [
+          0.8989996825098712,
+          0.15025197984161268,
+          0,
+          0.35887950782119243,
+          0,
+          0.500083575922622,
+          0.8231130600461054,
+          0,
+          0.13043478260869565,
+          0.33913043478260874,
+          1,
+          0,
+          0.5586967050541095,
+          0,
+          0.0652173913043479,
+          0.1653853778654231,
+          0.25720313284028185,
+          0
+        ]
+      },
+      {
+        "tick": 240,
+        "central_available": false,
+        "index": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "tick": 305,
+        "central_available": true,
+        "index": [
+          0.7531147073451516,
+          0.6762035037197023,
+          0,
+          0.5636363636363637,
+          0,
+          0.732627024620639,
+          0.18661561620524922,
+          0.38694504439644817,
+          0.043478260869565286,
+          0.5943314447887648,
+          0.3796714444662611,
+          0.10869565217391304,
+          0.4919663095848653,
+          0.12244256823090519,
+          0,
+          0.14089435627758476,
+          0.39424979819796235,
+          0.07501173819137952
+        ]
+      }
+    ]
+  },
+  "suggestions": [
+    {
+      "id": "F-R01",
+      "version": 1,
+      "study": "SI-11D",
+      "report_sha256": "0dc2b6e1aca564dd90f55c57c9c3712cc6fcb8a697fe38a69cdc1dd8868fa26e",
+      "proposal": "Manter proporcional como referência; testar benefício incremental de X somente com novos casos independentes.",
+      "acceptance": "Não aumentar exposição ou pendências e satisfazer gates por coorte.",
+      "status": "research_proposal_not_approved",
+      "applied": false,
+      "changes_safety_constraints": false
+    },
+    {
+      "id": "F-R02",
+      "version": 1,
+      "study": "PIMCAT C1",
+      "report_sha256": "6d0cf15ac891cb59c29bfe3a671a69a543271de3f9e31392bbce2f61ef89776b",
+      "proposal": "Investigar janelas flexíveis e prazos simultâneos, sem impor agrupamento de pedestres.",
+      "acceptance": "Comparar atraso e violações por coorte, preservar proteção e censura.",
+      "status": "research_proposal_not_approved",
+      "applied": false,
+      "changes_safety_constraints": false
+    },
+    {
+      "id": "F-R03",
+      "version": 1,
+      "study": "PIMCAT C2 / RP-07",
+      "report_sha256": "16b433a0ec84d18a533c820016a4617d763d3387ad02af66bf3eb9c83da9cd46",
+      "proposal": "Preservar carona e RP-07 como comparadores; investigar políticas de atendimento em novas geometrias.",
+      "acceptance": "Solicitação única, proteção e ausência confirmada sem interrupções; sem aprovação de campo.",
+      "status": "research_proposal_not_approved",
+      "applied": false,
+      "changes_safety_constraints": false
+    },
+    {
+      "id": "F-R04",
+      "version": 1,
+      "study": "PIMCAT C3",
+      "report_sha256": "63837e6a48be940488bcd3f7742ea521115a2afe46a9c615840f615de636a403",
+      "proposal": "Obter anotações independentes cegas e geometria revisada em dataset autorizado.",
+      "acceptance": "Precisão/recall e cobertura por condições, sem usar predições como verdade.",
+      "status": "research_proposal_not_approved",
+      "applied": false,
+      "changes_safety_constraints": false
+    },
+    {
+      "id": "F-R05",
+      "version": 1,
+      "study": "PIMCAT D",
+      "report_sha256": "855853fff963813dbfc38471302d43ba401449bd6bb18933f77cf093d8ad1677",
+      "proposal": "Calibrar intervalos ETA em dados independentes; comparar contra política sem previsão.",
+      "acceptance": "Gate cobertura >=70% no protocolo D e não inferioridade por coorte, sem alargar intervalo só para passar.",
+      "status": "research_proposal_not_approved",
+      "applied": false,
+      "changes_safety_constraints": false
+    },
+    {
+      "id": "F-R06",
+      "version": 1,
+      "study": "PIMCAT E",
+      "report_sha256": "8a3d406048533c2c3a02ef8b9f7cea596b7ca7dec6dd6990b3a2ab4894d3c384",
+      "proposal": "Investigar custo de fila externa/pendências junto com capacidade interna e urgência.",
+      "acceptance": "Reduzir saturação sem piorar atraso, vazão, pendências ou prazos nos gates pré-registrados.",
+      "status": "research_proposal_not_approved",
+      "applied": false,
+      "changes_safety_constraints": false
+    }
+  ]
+}

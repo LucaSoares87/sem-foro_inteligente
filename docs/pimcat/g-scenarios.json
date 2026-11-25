@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "scope": "experimental_acceptance_not_field",
+  "human_acceptance": "PENDING_HUMAN",
+  "field_ready": false,
+  "physical_actuation": false,
+  "candidate_promoted": false,
+  "c3_precision": "BLOCKED_BY_INDEPENDENT_ANNOTATION",
+  "scenarios": [
+    {
+      "number": 1,
+      "id": "ambos_vazios",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1",
+      "limit": "Manter último estado com ausência confirmada; teste triestado.",
+      "test": "scenario_01_ambos_vazios"
+    },
+    {
+      "number": 2,
+      "id": "fluxo_unico",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1",
+      "limit": "Demanda conhecida contra vazio; sem autorização física.",
+      "test": "scenario_02_fluxo_unico"
+    },
+    {
+      "number": 3,
+      "id": "chegada_no_fechado",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1",
+      "limit": "Serviço no modelo em blocos; não garante transição real.",
+      "test": "scenario_03_chegada_no_fechado"
+    },
+    {
+      "number": 4,
+      "id": "filas_equivalentes",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1",
+      "limit": "Desempate proporcional preserva último; sem alegação de superioridade.",
+      "test": "scenario_04_filas_equivalentes"
+    },
+    {
+      "number": 5,
+      "id": "filas_assimetricas",
+      "disposition": "PARTIAL",
+      "evidence": "SI-11D/C1",
+      "limit": "X_safe preservado, proporcional e X comparados; gates negativos.",
+      "test": "scenario_05_filas_assimetricas"
+    },
+    {
+      "number": 6,
+      "id": "dominante_continuo",
+      "disposition": "PARTIAL",
+      "evidence": "C1",
+      "limit": "Contabilidade de espera e filas sob demanda intensa; sem garantia de fluidez.",
+      "test": "scenario_06_dominante_continuo"
+    },
+    {
+      "number": 7,
+      "id": "privacao_minoritaria",
+      "disposition": "PARTIAL",
+      "evidence": "C1/E",
+      "limit": "Registrar atrasos acima de 180s, inclusive pendentes; violações persistem.",
+      "test": "scenario_07_privacao_minoritaria"
+    },
+    {
+      "number": 8,
+      "id": "pedestre_isolado",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1/C2",
+      "limit": "Pedido individual, sem quantidade mínima.",
+      "test": "scenario_08_pedestre_isolado"
+    },
+    {
+      "number": 9,
+      "id": "grupo_progressivo",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1/C3",
+      "limit": "Relógio mais antigo preservado em modelo e perdas de detecção.",
+      "test": "scenario_09_grupo_progressivo"
+    },
+    {
+      "number": 10,
+      "id": "intenso_120",
+      "disposition": "PARTIAL",
+      "evidence": "C1/C2",
+      "limit": "Urgência e registro de violação; prazo não garantido sob sobrecarga.",
+      "test": "scenario_10_intenso_120"
+    },
+    {
+      "number": 11,
+      "id": "oportunidade_antecipada",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1/C2",
+      "limit": "Carona apenas compatível; oportunidade não autoriza travessia real.",
+      "test": "scenario_11_oportunidade_antecipada"
+    },
+    {
+      "number": 12,
+      "id": "mobilidade_reduzida",
+      "disposition": "PARTIAL",
+      "evidence": "C1/C2",
+      "limit": "Extensão com pedestre lento sintético; acessibilidade de campo não validada.",
+      "test": "scenario_12_mobilidade_reduzida"
+    },
+    {
+      "number": 13,
+      "id": "faixa_ocupada",
+      "disposition": "PASS_SCOPED",
+      "evidence": "RP-07/C3",
+      "limit": "Veto de preferência veicular enquanto ocupada/clearance pendente.",
+      "test": "scenario_13_faixa_ocupada"
+    },
+    {
+      "number": 14,
+      "id": "pelotao_anterior",
+      "disposition": "PARTIAL",
+      "evidence": "D",
+      "limit": "ETA agregada e censura contabilizadas; cobertura reprovada.",
+      "test": "scenario_14_pelotao_anterior"
+    },
+    {
+      "number": 15,
+      "id": "destino_saturado",
+      "disposition": "PARTIAL",
+      "evidence": "D/E",
+      "limit": "Veto antes de abertura; residual de entradas críticas observado.",
+      "test": "scenario_15_destino_saturado"
+    },
+    {
+      "number": 16,
+      "id": "propagacao_3mais",
+      "disposition": "PARTIAL",
+      "evidence": "E",
+      "limit": "Conservação em rede finita; não elimina propagação.",
+      "test": "scenario_16_propagacao_3mais"
+    },
+    {
+      "number": 17,
+      "id": "prazos_simultaneos",
+      "disposition": "PARTIAL",
+      "evidence": "C1/E",
+      "limit": "Prioridade dentre ações admissíveis; violações possíveis.",
+      "test": "scenario_17_prazos_simultaneos"
+    },
+    {
+      "number": 18,
+      "id": "falha_camera",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1/C3",
+      "limit": "Desconhecido e abstenção, não zero.",
+      "test": "scenario_18_falha_camera"
+    },
+    {
+      "number": 19,
+      "id": "falha_comunicacao",
+      "disposition": "PASS_SCOPED",
+      "evidence": "D/E",
+      "limit": "Expiração e leitura ausente; não extrapolar.",
+      "test": "scenario_19_falha_comunicacao"
+    },
+    {
+      "number": 20,
+      "id": "perda_central",
+      "disposition": "PASS_SCOPED",
+      "evidence": "E",
+      "limit": "Contingência local idealizada; não certifica contingência física.",
+      "test": "scenario_20_perda_central"
+    },
+    {
+      "number": 21,
+      "id": "baixa_confianca",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1/C3",
+      "limit": "Não inferir vazio nem reiniciar pedido.",
+      "test": "scenario_21_baixa_confianca"
+    },
+    {
+      "number": 22,
+      "id": "oclusao",
+      "disposition": "PARTIAL",
+      "evidence": "C3",
+      "limit": "Unknown e pedido mantido; precisão independente bloqueada.",
+      "test": "scenario_22_oclusao"
+    },
+    {
+      "number": 23,
+      "id": "alternancia_excessiva",
+      "disposition": "PASS_SCOPED",
+      "evidence": "C1/E",
+      "limit": "Bloco mínimo e revisão; estabilidade no modelo, não campo.",
+      "test": "scenario_23_alternancia_excessiva"
+    },
+    {
+      "number": 24,
+      "id": "reinicio",
+      "disposition": "PARTIAL",
+      "evidence": "C3/SI-13",
+      "limit": "Reinício desconhecido e preservação do limite de abstenção; persistência do pedido multimodal NÃO executada.",
+      "test": "scenario_24_reinicio"
+    },
+    {
+      "number": 25,
+      "id": "fps",
+      "disposition": "BLOCKED",
+      "evidence": "SI-09F/C3/SI-10B",
+      "limit": "Regras temporais em 30/15/10/5; precisão independente e FPS sustentado não demonstrados.",
+      "test": "scenario_25_fps"
+    },
+    {
+      "number": 26,
+      "id": "rp07_sem_demanda",
+      "disposition": "PASS_SCOPED",
+      "evidence": "RP-07/C2",
+      "limit": "24h de regra sintética e 360s microscópicos; verde contínuo apenas ausência confirmada.",
+      "test": "scenario_26_rp07_sem_demanda"
+    },
+    {
+      "number": 27,
+      "id": "rp07_pedido_retorno",
+      "disposition": "PASS_SCOPED",
+      "evidence": "RP-07/C2",
+      "limit": "Pedido único e retorno após confirmação independente/clearance no modelo.",
+      "test": "scenario_27_rp07_pedido_retorno"
+    }
+  ]
+}

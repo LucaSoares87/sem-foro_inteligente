@@ -32,3 +32,7 @@ O acesso direto ao Drive público oficial de Bellevue foi validado e amostras re
 
 ## PIMCAT — extensão de pesquisa, sem interromper o aceite existente
 Base estável FINAL-ACCEPTANCE PR #31, aaf128adc2cf7cbfee4373c2942e5e552a566db9. SI-01–SI-13 e aceite automatizado concluídos; aceite humano no Codespaces e sete gates reais continuam pendentes. PIMCAT é uma extensão de pesquisa separada, não substituição de SI-09/SI-13 e não condição para testar o produto atual. Veja [arquitetura e auditoria](pimcat/architecture.md), [rastreabilidade](pimcat/requirements.md) e [protocolo pré-registrado local](pimcat/local-protocol.md). A primeira entrega experimenta B/C local; D/E/F/G dependem dos gates científicos, dados/calibração e decisões documentadas. Nenhum candidato operacional promovido.
+
+
+### PIMCAT F — inteligência contínua
+Relatório civil diário por cruzamento/fonte, acervo científico e criticidade sintética nos painéis, propostas versionadas sem aplicação. Ver [protocolo F](pimcat/f-reporting.md). C3 precisão independente, medição física de velocidade, atribuição de viagens e dados diários multimodais reais pendentes; nenhum candidato aprovado. Próximo: G, homologação integrada experimental, sem substituir aceite humano e gates SI-08B.
