@@ -1,0 +1,38 @@
+name: FIELD-READINESS C private preflight
+on:
+  pull_request:
+    paths:
+      - 'backend/src/validation/field_trial_preflight.py'
+      - 'backend/tests/test_field_trial_preflight.py'
+      - 'docs/field-readiness/**'
+      - '.github/workflows/field-readiness-c.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/fr-c
+          python -m pip freeze > /tmp/fr-c/environment.txt
+      - name: Offline preflight fixtures and unchanged A
+        run: python -m pytest -q tests/test_field_trial_preflight.py tests/test_field_readiness.py tests/test_validation.py --junitxml=/tmp/fr-c/tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-readiness-c-preflight-tests
+          path: /tmp/fr-c/
+          retention-days: 30
