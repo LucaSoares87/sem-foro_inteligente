@@ -62,6 +62,23 @@ def pressure(a,b):
     return a.queue/a.capacity-b.count/b.capacity
 
 
+def network_context(graph,readings,j,t,available):
+    """Graph-derived one-hop extension beyond local approach/destination.
+    All referenced observations must be current; no imputation of missing edges.
+    """
+    if not available:return None
+    moves=graph["movements"]
+    result={}
+    for g,(origin,dest) in moves[j].items():
+        before=[a for ms in moves.values() for a,b in ms.values() if b==origin]
+        after=[b for ms in moves.values() for a,b in ms.values() if a==dest]
+        keys=[origin,*before,*after]
+        values={k:criticity(readings.get(k),t)[0] for k in keys}
+        if any(v is None for v in values.values()):return None
+        result[g]=.5*values[origin]+.25*max((values[k] for k in before),default=0)-.25*max((values[k] for k in after),default=0)
+    return result
+
+
 def arbitrate(policy,mid,phase,age,t,local,central,p,oldest,waits):
     """Pure simulation preference. local measurements include independent destination sensor."""
     assert policy in POLICIES
@@ -93,8 +110,7 @@ def arbitrate(policy,mid,phase,age,t,local,central,p,oldest,waits):
         if effective=="local_demand":return a.queue
         s=pressure(a,b)
         if effective.startswith("global"):
-            val,_=criticity(central.get(g),t)
-            if val is not None:s+=.5*val
+            s+=central[g]
         return s
     # Do not select an empty movement over actual demand just because destination is empty.
     demand_groups=[g for g in allowed if local[g][0].count]
@@ -296,7 +312,7 @@ def trajectory(api,net,meta,graph,route,rows,family,seed,policy):
             for j,m in meta.items():
                 s=states[j];mid=j=="M";ms=m["movements"]
                 local={g:(readings[a],readings[b]) for g,(a,b) in ms.items()}
-                central={g:readings[a] for g,(a,b) in ms.items()} if available else None
+                central=network_context(graph,readings,j,t,available)
                 pids=[k for k in all_wait if planned[k][4]==j];oldest=min((requested[k] for k in pids),default=None)
                 ages={g:max((waits[k] for k in edge_ids[a] if speed[k]<.1),default=0) for g,(a,b) in ms.items()}
                 anticipate=policy=="global_storage" and available
@@ -318,6 +334,7 @@ def trajectory(api,net,meta,graph,route,rows,family,seed,policy):
                         if s.phase=="BP" and blocked.get("B") and t-s.start>=12:bp_yellow.setdefault(j,t)
                         if t-s.start>=10+m["clear"]:
                             if crossings[j]:extensions+=1
+                            elif j in bp_yellow and t-bp_yellow[j]<3:pass
                             else:
                                 target,reason=choice("R",0)
                                 switch(target,"clearance_"+reason)
