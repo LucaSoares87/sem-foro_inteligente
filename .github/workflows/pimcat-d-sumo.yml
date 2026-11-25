@@ -6,6 +6,13 @@ on:
       - 'backend/tests/test_pimcat_d_sumo.py'
       - 'docs/pimcat/d-green-wave-protocol.md'
       - '.github/workflows/pimcat-d-sumo.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/src/benchmarking/pimcat_d_sumo.py'
+      - 'backend/tests/test_pimcat_d_sumo.py'
+      - 'docs/pimcat/d-green-wave-protocol.md'
+      - '.github/workflows/pimcat-d-sumo.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,6 +67,9 @@ jobs:
                   assert m['pedestrian_scheduled']==m['pedestrian_exited']+m['pedestrian_remaining']+m['pedestrian_uninserted']
                   assert m['pedestrian_admitted']==m['pedestrian_completed']+m['pedestrian_crossing']
                   assert m['eta_issued']==m['eta_arrived']+m['eta_censored']
+                  assert m['vehicle_area']==m['corridor_vehicle_area']+m['transverse_vehicle_area']
+                  assert abs(m['critical_exposure']-sum(m['segment_critical_exposure']))<1e-7
+                  assert m['mid_empty_interruptions']==0
                   assert not any(m[k] for k in ('collisions','teleports','overspeed_samples','conflict_violations','red_entries'))
           print(json.dumps(d['gates'],sort_keys=True))
           PY
