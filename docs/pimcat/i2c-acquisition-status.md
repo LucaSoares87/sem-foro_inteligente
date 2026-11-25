@@ -1,0 +1,7 @@
+# I2C2 — aquisição seletiva JAAD (25/11/2026)
+Revisão oficial d2feeac998366e47ecc54e5533c8a3fa61141dda, split test blob 3a2d0154cad0548f6239547c59597aedd8107818. Arquivos confirmados via API oficial:
+- video_0005.xml blob 9a5b1125e3f7de95e27c799480cc4ca38d940e97, 578775 bytes.
+- video_0015.xml blob b1af42bddf5bc8fd072a86d41a702fc59e3a6ab2, 116095 bytes.
+- video_0016.xml blob 8ec52082790c71948e56afbdc9124037dfe3ea66, 392283 bytes.
+README fixado declara MIT para projeto/anotações, CC BY 4.0 para vídeos; página histórica declara MIT para ambos. Aplicar termos específicos CC BY 4.0 e atribuição, revisar licença antes de avaliação; não presumir autorização de campo. Fonte oficial oferece arquivo único JAAD_clips.zip (~3.1GB) em https://data.nvision2.eecs.yorku.ca/JAAD_dataset/data/JAAD_clips.zip ou Google Drive ID 1HCFLBO9fJutCKG11FtjKfdLvME6Qe_5L. Tentativa de GET Range bytes=0-0 no ambiente de trabalho falhou DNS (NameResolutionError); suporte Range não confirmado; nenhum vídeo adquirido. Não baixar ZIP integral, não substituir seleção nem fonte por mirror não verificado.
+Preparar aquisição privada com limite de transferência e Range estrito, sem fallback para ZIP inteiro. Fixar hashes de XML, registrar SHA256 do vídeo adquirido, origem, versão, dimensões, contagem de frames e revisão independente de cobertura antes da avaliação. Sem anotações/frames em Git ou artefatos públicos. C3 Bellevue continua bloqueada e distinta. I2C2 BLOCKED_PENDING_MEDIA_AND_REVIEW. 
