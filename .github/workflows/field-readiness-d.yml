@@ -1,0 +1,73 @@
+name: FIELD-READINESS D integrated lab
+on:
+  pull_request:
+    paths:
+      - 'backend/src/benchmarking/field_integrated_lab.py'
+      - 'backend/tests/test_field_integrated_lab.py'
+      - 'docs/field-readiness/d-protocol.md'
+      - '.github/workflows/field-readiness-d.yml'
+  workflow_dispatch:
+    inputs:
+      authorize_bounded_lab:
+        description: 'Authorize one bounded synthetic lab run and runner/model transfer budget'
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+jobs:
+  fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - working-directory: backend
+        run: |
+          mkdir -p /tmp/fr-d-fixtures
+          python -m pytest -q tests/test_field_integrated_lab.py tests/test_pimcat_i2b_resilience.py tests/test_si10b_shadow_load.py tests/test_field_readiness_b.py --junitxml=/tmp/fr-d-fixtures/tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-readiness-d-fixtures
+          path: /tmp/fr-d-fixtures/
+          retention-days: 30
+  bounded-lab:
+    if: github.event_name == 'workflow_dispatch' && inputs.authorize_bounded_lab == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned validation model and local fixture
+        working-directory: backend
+        run: |
+          python -m pip install -r requirements-dev.txt
+          command -v ffmpeg
+          mkdir -p /tmp/fr-d-model /tmp/fr-d-results
+          python -m pip freeze > /tmp/fr-d-results/environment.txt
+          ffmpeg -version > /tmp/fr-d-results/ffmpeg.txt
+          python -m src.vision.model_artifacts --output /tmp/fr-d-model/yolox_s.onnx --spec-output /tmp/fr-d-model/spec.json
+          docker run --rm -d --name fr-d-rtsp -p 127.0.0.1:18554:8554/tcp -e MTX_RTSPTRANSPORTS=tcp bluenviron/mediamtx:1.12.3
+          docker image inspect bluenviron/mediamtx:1.12.3 --format '{{json .RepoDigests}}' > /tmp/fr-d-results/server-digest.json
+      - name: Run authorized 100s synthetic lab
+        working-directory: backend
+        run: python -m src.benchmarking.field_integrated_lab --authorize-bounded-lab --model-spec /tmp/fr-d-model/spec.json --model-root /tmp/fr-d-model --output /tmp/fr-d-results/study.json
+      - name: Stop isolated fixture
+        if: always()
+        run: docker rm -f fr-d-rtsp || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-readiness-d-integrated-lab
+          path: /tmp/fr-d-results/
+          retention-days: 30
