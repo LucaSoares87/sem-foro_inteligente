@@ -54,3 +54,15 @@ def test_reference_draft_and_one_to_one():
     assert independent_metrics(predictions,a,b,"a",h) is None
     b["frames"][0]["reviewed"]=False
     assert independent_metrics(predictions,a,b,"reviewer",h) is None
+
+
+def test_wait_latch_across_fps_and_restart_is_unknown():
+    g=Geometry("midblock",((.1,.1,.4,.5),),(.4,.1,.8,.5))
+    a=Person((.2,.2,.3,.4),.9)
+    for fps in (30,15,10,5):
+        p=Perception(g)
+        for i in range(2*fps+1):r=p.update(i/fps,[a])
+        assert r["intention"]=="candidate" and r["oldest_observed_wait_seconds"]==2
+        assert p.update(4,[],available=False)["oldest_observed_wait_seconds"]==4
+    fresh=Perception(g).update(0,[])
+    assert fresh["demand"]==fresh["crossing"]=="unknown" and fresh["oldest_observed_wait_seconds"] is None
