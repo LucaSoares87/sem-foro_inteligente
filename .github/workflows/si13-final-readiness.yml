@@ -1,0 +1,134 @@
+name: SI-13 integrated final readiness
+on:
+  pull_request:
+    paths:
+      - 'backend/src/validation/si13_field_packet.py'
+      - 'backend/src/optimization/routes.py'
+      - 'backend/tests/test_si13*.py'
+      - 'ops/si13_integrated.py'
+      - 'ops/verify_si13_archive.py'
+      - 'docs/si13/**'
+      - '.github/workflows/si13-final-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated-readiness:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      POSTGRES_PASSWORD: si13_ephemeral_ci_only
+      APP_ENV: development
+      AUTH_MODE: disabled
+      INTERSECTION_REGISTRY_JSON: '[]'
+      VALIDATION_EVIDENCE_JSON: '[]'
+      SI12_EVIDENCE_DIR: /tmp/si13-results/browser
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate field packet and prior contracts
+        working-directory: backend
+        run: |
+          python -m pip install -r requirements-dev.txt gdown==5.2.0
+          python -m pytest -q tests/test_si13_field_packet.py tests/test_si13_current_optimization.py tests/test_validation.py tests/test_queue_optimization.py
+          mkdir -p /tmp/si13-results
+          python -m src.validation.si13_field_packet prepare --directory /tmp/si13-results/field-packet
+      - name: Acquire pinned research model and lossless research clip
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/si13-media/video /tmp/si13-media/models /tmp/si13-private
+          gdown 'https://drive.google.com/uc?id=1c3lvwz7FfTnTEVyLaopPg6NjpJ2pAn7Q' -O /tmp/si13-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4
+          python -m src.benchmarking.si09d_preflight --source /tmp/si13-private/Bellevue_116th_NE12th__2017-09-11_12-08-33.mp4 --output /tmp/si13-media/video/replay.mkv --evidence /tmp/si13-results/replay-preflight.json --seconds 32
+          python -m src.vision.model_artifacts --output /tmp/si13-media/models/yolox_s.onnx --spec-output /tmp/si13-private/model-spec.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/si13-results/replay-preflight.json'))
+          assert d['decoded_pixel_sha256']=='92255ddde5f2b5095c6af4c7628bdc48b6e15f547c41c9c16dfa7475e8270619'
+          assert d['frames']==960 and d['commercial_demo_authorized'] is False
+          PY
+          chmod -R a+rX /tmp/si13-media
+      - name: Configure isolated file-only Compose
+        run: |
+          set -euo pipefail
+          cat >/tmp/si13-compose.yml <<'YAML'
+          services:
+            backend:
+              volumes:
+                - /tmp/si13-media/video:/media/video:ro
+                - /tmp/si13-media/models:/media/models:ro
+          YAML
+          echo "COMPOSE_FILE=$PWD/docker-compose.yml:/tmp/si13-compose.yml" >> "$GITHUB_ENV"
+          echo 'VIDEO_SOURCES_JSON=[{"source_id":"BELLEVUE_116TH_NE12TH","intersection_code":"BELLEVUE_116TH_NE12TH","kind":"file","locator":"replay.mkv","target_fps":5,"data_origin":"external_real_replay","commercial_demo_authorized":false}]' >> "$GITHUB_ENV"
+          echo "VISION_MODEL_JSON=$(python -c "import json; print(json.dumps(json.load(open('/tmp/si13-private/model-spec.json')),separators=(',',':')))")" >> "$GITHUB_ENV"
+          echo "TRAFFIC_GEOMETRY_JSON=$(python -c "import json; print(json.dumps([json.load(open('docs/si09/bellevue-preliminary-geometry.json'))],separators=(',',':')))")" >> "$GITHUB_ENV"
+      - name: Install browser with fixed supported runner
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+          npm run build
+          npm install --no-save --package-lock=false playwright@1.51.1 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Install and start actual application
+        run: |
+          docker compose config --quiet
+          docker compose up --build --wait --wait-timeout 180
+          docker compose version > /tmp/si13-results/compose-version.txt
+          test "$(docker compose exec -T backend id -u | tr -d '\r')" != "0"
+      - name: Repeat complete browser demonstration
+        working-directory: frontend
+        run: node tests/pilot-browser.mjs
+      - name: Execute actual replay, concurrent load, restart, backup and restore
+        run: python ops/si13_integrated.py --output-dir /tmp/si13-results
+      - name: Verify integrated report and preserve blocked gates
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('/tmp/si13-results')
+          d=json.loads((p/'integrated.json').read_text())
+          b=dict(d);sha=b.pop('artifact_sha256')
+          assert sha==hashlib.sha256(json.dumps(b,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          assert d['scope']=='isolated_external_real_replay_not_field'
+          assert d['new_session_confirmed'] and d['stopped_source_no_current_result'] and d['history_survived_restart']
+          assert all(v>0 for v in d['stage_delta'].values())
+          assert d['field_probe_exit']==5 and len(d['gates']['missing'])==7
+          assert all(d[k] is False for k in ('field_accuracy_measured','pilot_ready','physical_actuation','candidate_promoted'))
+          assert d['operational_decision']=='abstain'
+          for name in ('replay-probe.json','field-probe-rejected.json','backend-recovery.json','postgres-recovery.json'):
+              r=json.loads((p/name).read_text())
+              sha=r.pop('artifact_sha256')
+              assert sha==hashlib.sha256(json.dumps(r,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+              assert r['pilot_gate_satisfied'] is False and r['physical_actuation'] is False
+          browser=json.loads((p/'browser/browser-results.json').read_text())
+          assert browser['passed'] and len(browser['checks'])==7 and not browser['page_errors']
+          assert browser['field_validation'] is False
+          manifest=[]
+          for f in sorted(p.rglob('*')):
+              if f.is_file():
+                  manifest.append({'file':str(f.relative_to(p)),'sha256':hashlib.sha256(f.read_bytes()).hexdigest()})
+          (p/'manifest.json').write_text(json.dumps({'scope':'ci_research_and_preparation_not_field','files':manifest,'pilot_ready':False},indent=2))
+          PY
+      - name: Preserve evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si13-integrated-evidence
+          path: /tmp/si13-results/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Tear down isolated runner only
+        if: always()
+        run: |
+          docker compose logs --no-color --tail=80 || true
+          docker compose down -v
+          rm -rf /tmp/si13-media /tmp/si13-private /tmp/si13-private-db

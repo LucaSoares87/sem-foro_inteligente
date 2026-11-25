@@ -2,11 +2,11 @@ from types import SimpleNamespace
 from uuid import uuid4
 from src.optimization.engine import evaluate
 from src.optimization.routes import current_result
-from tests.test_queue_optimization import snapshot, approach
+from src.benchmarking.si11_counterfactual import snapshot,FAMILIES
 
 
 def test_only_current_queue_epoch_and_frame_is_exposed():
-    original=snapshot((approach("A","GA",34,.35,.6,50),approach("B","GB",6,.08,.5,20)))
+    original=snapshot(FAMILIES["light_asymmetric"])
     result=evaluate(original)
     state=SimpleNamespace(queue_intelligence=SimpleNamespace(latest=lambda _:original),
                           optimization=SimpleNamespace(latest=lambda _:result))
