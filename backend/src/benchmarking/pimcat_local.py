@@ -334,7 +334,11 @@ def run():
        "cases":len(rows),"trajectories":len(rows)*len(POLICIES),"horizon_seconds":HORIZON,
        "pedestrian_limit_experimental_seconds":PED_LIMIT,"vehicle_limit_experimental_seconds":VEH_LIMIT,
        "policies":list(POLICIES),"summaries":summaries,"gates":gates,
-       "xp_xv_ablation_plan_differences":sum(r["metrics"]["integrated_xp"]["plans"]!=r["metrics"]["integrated_xp_no_xv"]["plans"] for r in rows),
+       "xp_xv_ablation_phase_differences":sum(
+          [p["phase"] for p in r["metrics"]["integrated_xp"]["plans"]]!=
+          [p["phase"] for p in r["metrics"]["integrated_xp_no_xv"]["plans"]] for r in rows),
+       "xp_xv_ablation_audit_differences":sum(
+          r["metrics"]["integrated_xp"]["plans"]!=r["metrics"]["integrated_xp_no_xv"]["plans"] for r in rows),
        "research_gate_passed":gates["integrated_xp"]["passed"],"candidate_promoted":False,
        "physical_actuation":False,"operationally_validated":False,"operational_decision":"abstain",
        "perception_validation":"NOT_RUN","sumo_pedestrian_validation":"NOT_RUN","network_validation":"NOT_RUN",
