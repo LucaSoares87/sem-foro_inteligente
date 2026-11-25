@@ -1,0 +1,38 @@
+name: FIELD-READINESS private preparation
+on:
+  pull_request:
+    paths:
+      - 'backend/src/validation/field_readiness.py'
+      - 'backend/tests/test_field_readiness.py'
+      - 'docs/field-readiness/**'
+      - '.github/workflows/field-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/field-readiness-evidence
+          python -m pip freeze > /tmp/field-readiness-evidence/environment.txt
+      - name: Preparation and unchanged scientific regressions
+        run: python -m pytest -q tests/test_field_readiness.py tests/test_si13_field_packet.py tests/test_pimcat_c3_vision.py tests/test_pimcat_i2a_calibration.py tests/test_pimcat_i2c_validation.py tests/test_pimcat_i2b_resilience.py tests/test_validation.py --junitxml=/tmp/field-readiness-evidence/tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-readiness-preparation-tests
+          path: /tmp/field-readiness-evidence/
+          retention-days: 30
