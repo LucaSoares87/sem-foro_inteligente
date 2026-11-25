@@ -231,7 +231,10 @@ class VideoManager:
                 "continuous_opt_in":s.spec.continuous,"desired":key in self.desired,
                 "capture_state":s.state,"observation":"recent_frames" if fresh else "unknown",
                 "last_frame_age_seconds":round(age,3) if age is not None else None,
-                "session_frames":s.frames,"process_observed_frames":m["total_frames"] if m else None,
+                "session_frames":s.frames,"session_buffer_overwrites":s.overwritten,
+                "measured_fps":s.status()["measured_fps"] if fresh else None,
+                "decode_to_receive_ms":s.last_delay_ms if fresh else None,
+                "process_observed_frames":m["total_frames"] if m else None,
                 "supervisor_restarts":m["restarts"] if m else None,
                 "retry_in_seconds":max(0,round(m["next"]-now,2)) if m and m["next"] and key in self.desired else None})
         return {"schema_version":1,"state":"running" if self.supervisor_task and not self.supervisor_task.done() else "idle",
