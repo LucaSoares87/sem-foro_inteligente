@@ -133,7 +133,7 @@ def ensure_version():
     return libsumo
 
 
-def trajectory(api,network,routes,rows,rates,seed,policy):
+def trajectory(api,network,routes,rows,rates,seed,policy,*,select_fn=select):
     planned={vid:(t,g) for t,g,vid in rows}
     inserted=set(); arrived=set(); wait={}; scheduled=set()
     ids_by_time={}
@@ -167,7 +167,7 @@ def trajectory(api,network,routes,rows,rates,seed,policy):
                 for lane in LANES:
                     halted=[v for v in api.lane.getLastStepVehicleIDs(lane) if api.vehicle.getSpeed(v)<.1]
                     queues.append(deque(sorted((t-int(wait.get(v,0)) for v in halted))))
-                action,reason=select(policy,pair,queues,t)
+                action,reason=select_fn(policy,pair,queues,t)
                 if action is None:
                     fallback+=1
                     action=(t//CYCLE%2,26) # synthetic accounting fallback only
@@ -215,14 +215,14 @@ def trajectory(api,network,routes,rows,rates,seed,policy):
         api.close()
 
 
-def case(api,root,family,seed):
+def case(api,root,family,seed,policies=POLICIES,*,select_fn=select):
     length,_,_=FAMILIES[family]
     root=Path(root)
     network=build_network(root,length)
     rates,rows=demand(family,seed)
     route=root/"demand.rou.xml"
     write_routes(route,rows)
-    metrics={p:trajectory(api,network,route,rows,rates,seed,p) for p in POLICIES}
+    metrics={p:trajectory(api,network,route,rows,rates,seed,p,select_fn=select_fn) for p in policies}
     return {"family":family,"seed":seed,"nominal_rates":rates,"scheduled":len(rows),
         "network_sha256":sha256_file(network),"demand_sha256":sha256_file(route),
         "metrics":metrics}
