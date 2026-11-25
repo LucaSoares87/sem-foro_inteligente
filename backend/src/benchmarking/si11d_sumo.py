@@ -1,5 +1,6 @@
 """Isolated microscopic research. libsumo is in-process and never connects to a controller."""
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -215,7 +216,12 @@ def trajectory(api,network,routes,rows,rates,seed,policy,*,select_fn=select):
         api.close()
 
 
-def case(api,root,family,seed,policies=POLICIES,*,select_fn=select):
+def canonical_network_sha256(path):
+    """Hash complete XML structure, excluding comments (netconvert generation metadata)."""
+    return hashlib.sha256(ET.canonicalize(from_file=path,with_comments=False).encode('utf-8')).hexdigest()
+
+
+def case(api,root,family,seed,policies=POLICIES,*,select_fn=select,canonical_network=False):
     length,_,_=FAMILIES[family]
     root=Path(root)
     network=build_network(root,length)
@@ -224,7 +230,7 @@ def case(api,root,family,seed,policies=POLICIES,*,select_fn=select):
     write_routes(route,rows)
     metrics={p:trajectory(api,network,route,rows,rates,seed,p,select_fn=select_fn) for p in policies}
     return {"family":family,"seed":seed,"nominal_rates":rates,"scheduled":len(rows),
-        "network_sha256":sha256_file(network),"demand_sha256":sha256_file(route),
+        "network_sha256":canonical_network_sha256(network) if canonical_network else sha256_file(network),"demand_sha256":sha256_file(route),
         "metrics":metrics}
 
 

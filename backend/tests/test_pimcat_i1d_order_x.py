@@ -1,4 +1,5 @@
 import os
+from src.validation.io import sha256_file
 from collections import deque
 from itertools import product
 import pytest
@@ -38,15 +39,31 @@ def test_explicit_order_swap_and_wait_guard(monkeypatch):
     assert i1.select(i1.CANDIDATE,pair,queues,60)==((1,32),"order_keep_risk_veto")
 
 
+def test_canonical_network_hash_ignores_only_nonstructural_xml_metadata(tmp_path):
+    a=tmp_path/"a.xml"; b=tmp_path/"b.xml"
+    a.write_text('<!-- generated at first time --><net><edge id="a" length="100"/></net>',encoding="utf-8")
+    b.write_text('<!-- generated at second time --><net><edge length="100" id="a"/></net>',encoding="utf-8")
+    assert sha256_file(a)!=sha256_file(b)
+    assert d.canonical_network_sha256(a)==d.canonical_network_sha256(b)
+    b.write_text('<!-- generated at second time --><net><edge length="101" id="a"/></net>',encoding="utf-8")
+    assert d.canonical_network_sha256(a)!=d.canonical_network_sha256(b)
+    b.write_text('<net><edge id="a" length="100"/><connection from="a" to="b"/></net>',encoding="utf-8")
+    assert d.canonical_network_sha256(a)!=d.canonical_network_sha256(b)
+
+
 @pytest.mark.skipif(os.environ.get("SI11D_SUMO_REQUIRED")!="1",reason="pinned offline SUMO only")
 @pytest.mark.parametrize("family",["asymmetric","compact_burst"])
 def test_original_parity_and_candidate_repeatability(tmp_path,family):
     api=d.ensure_version();root=tmp_path/family
     original=d.case(api,root,family,5000)
-    hooked=d.case(api,root,family,5000,select_fn=i1.select)
+    net=root/'network.net.xml'
+    assert original['network_sha256']==sha256_file(net)
+    # Normalize the legacy result using the actual file before regeneration.
+    original['network_sha256']=d.canonical_network_sha256(net)
+    hooked=d.case(api,root,family,5000,select_fn=i1.select,canonical_network=True)
     assert original==hooked
-    x=d.case(api,root,family,i1.SEEDS[0],i1.POLICIES,select_fn=i1.select)
-    y=d.case(api,root,family,i1.SEEDS[0],i1.POLICIES,select_fn=i1.select)
+    x=d.case(api,root,family,i1.SEEDS[0],i1.POLICIES,select_fn=i1.select,canonical_network=True)
+    y=d.case(api,root,family,i1.SEEDS[0],i1.POLICIES,select_fn=i1.select,canonical_network=True)
     assert x==y
     m=x["metrics"][i1.CANDIDATE]
     assert m["scheduled"]==m["inserted"]+m["uninserted"]

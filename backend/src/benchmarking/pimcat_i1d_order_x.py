@@ -105,11 +105,11 @@ def assess(rows):
 def run():
     api=d.ensure_version()
     with tempfile.TemporaryDirectory(prefix="pimcat-i1d-") as folder:
-        rows=[d.case(api,Path(folder)/f"{f}-{s}",f,s,POLICIES,select_fn=select)
+        rows=[d.case(api,Path(folder)/f"{f}-{s}",f,s,POLICIES,select_fn=select,canonical_network=True)
               for f in d.FAMILIES for s in SEEDS]
     overall,cohorts,families,passed=assess(rows)
     report={"scope":"pimcat_i1d_matched_budget_order_synthetic_not_field","sumo_version":d.VERSION,
-            "seeds":list(SEEDS),"policies":list(POLICIES),"cases":len(rows),
+            "seeds":list(SEEDS),"policies":list(POLICIES),"network_hash_method":"xml_c14n_without_comments_sha256","cases":len(rows),
             "trajectories":len(rows)*len(POLICIES),"horizon_seconds":d.HORIZON,"rows":rows,
             "overall":overall,"cohorts":cohorts,"families":families,"research_gate_passed":passed,
             "c3_independent_precision":"BLOCKED_BY_INDEPENDENT_ANNOTATION",
@@ -125,6 +125,7 @@ def verify(report):
     assert r["scope"]=="pimcat_i1d_matched_budget_order_synthetic_not_field"
     assert r["sumo_version"]==d.VERSION and r["horizon_seconds"]==d.HORIZON
     assert r["seeds"]==list(SEEDS) and r["policies"]==list(POLICIES)
+    assert r["network_hash_method"]=="xml_c14n_without_comments_sha256"
     assert r["cases"]==32 and r["trajectories"]==160
     rows=r["rows"]
     assert len(rows)==32 and {(x["family"],x["seed"]) for x in rows}=={(f,s) for f in d.FAMILIES for s in SEEDS}
