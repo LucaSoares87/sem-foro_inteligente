@@ -27,3 +27,6 @@ Referenciar docs/si08b/acceptance.md, docs/si13/final-readiness.md e preparar do
 2. Aceite humano do produto; registrar problemas e correções.
 3. POC autorizada somente de observação/sombra, com sete gates e dados independentes. Resolver C3, FPS e calibração; reavaliar candidatos com comparadores fortes e coortes novas.
 4. Piloto supervisionado somente se órgãos e especialistas aprovarem. Comercialização não é gate automático.
+
+## Complemento H-CLOSE (2026-11-25)
+F/G já integrados, H2 PR44 integrado com gate negativo; PR36 integrado para reforçar a verificação D. H1 e o ensaio integrado devem ser reconciliados e aprovados no CI antes do aceite humano privado. Ver [registro H](h-integrated-demo.md) e [roteiro FINAL-ACCEPTANCE](../final-acceptance/README.md). H1 loopback sintético não prova soak 24h, RTSPS real ou VMS municipal. RP08 não promovida; C3 e os sete gates SI-08B continuam bloqueados. O roadmap de pesquisa após aceite de produto deve separar melhoria matemática, percepção/resiliência e relatório diário automatizado; não confundir validação laboratorial com autorização de campo.
