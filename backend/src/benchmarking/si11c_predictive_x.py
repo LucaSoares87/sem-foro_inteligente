@@ -4,6 +4,7 @@ import json
 import math
 from collections import deque
 from itertools import product
+from functools import lru_cache
 from pathlib import Path
 from random import Random
 from statistics import fmean
@@ -97,6 +98,7 @@ def forecast(q,pair,action,stress):
     return tuple(q),area+4*critical+15*overflow+imbalance
 
 
+@lru_cache(maxsize=2048)
 def admissible(pair,major,restrict):
     if not restrict:
         return ACTIONS
