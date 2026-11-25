@@ -46,8 +46,8 @@ def network(root,kind):
     for n,(x,y) in points.items():
         ET.SubElement(nodes,"node",id=n,x=str(x),y=str(y),type="traffic_light" if n=="J" else "priority")
     edges=ET.Element("edges")
-    movements=[("wi","W","J","eo","E","A"),("ei","E","J","wo","W","A")]
-    if kind=="cross":movements.append(("si","S","J","no","N","B"))
+    movements=[("wi","W","eo","E","A"),("ei","E","wo","W","A")]
+    if kind=="cross":movements.append(("si","S","no","N","B"))
     for incoming,start,outgoing,end,_ in movements:
         for eid,f,t in ((incoming,start,"J"),(outgoing,"J",end)):
             ET.SubElement(edges,"edge",id=eid,attrib={"from":f,"to":t,
