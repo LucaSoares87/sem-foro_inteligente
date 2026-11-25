@@ -220,6 +220,7 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
     cohorts=[[] for _ in range(n)];issued={};arrived_eta={};segment_seen=[set() for _ in range(n)]
     crossings=[set() for _ in meta];internals=[set() for _ in meta]
     speed_samples=[];area_v=area_p=critical=0.;pending_ticks=0
+    corridor_area=transverse_area=0;segment_critical=[0.]*n
     changes=extensions=vetoes=critical_green=critical_yellow=critical_entries=0
     collisions=teleports=overspeed=red_entries=conflict=0
     compatible=unobserved=eta_reviews=0
@@ -250,7 +251,7 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
                 blocked=i<n-1 and capacity_block(occupancy,caps[i+1],qa,policy=="adaptive_eta_storage")
                 critical_now=i<n-1 and occupancy>=.85*caps[i+1]
                 blocked_at.append(critical_now)
-                in_transit=sum(road[k]==f"a{i}" and pos[k]<lengths[i]-20 for k in active)
+                in_transit=sum(road[k]==f"a{i}" and pos[k]<lengths[i]-20 and speed[k]>=.1 for k in active)
                 cohorts[i]=[c for c in cohorts[i] if t<=c.expires]
                 eta=upcoming(cohorts[i],t,in_transit) if i else 0
                 def switch(target,reason):
@@ -335,7 +336,8 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
                 for k in present:
                     if pos[k]>=lengths[i]-20 and (i,k) in issued:
                         arrived_eta.setdefault((i,k),t+1)
-                critical+=max(0,len(present)-.85*caps[i])
+                excess=max(0,len(present)-.85*caps[i])
+                critical+=excess;segment_critical[i]+=excess
             halted={k for k in active if speed[k]<.1}
             pending={k for k in scheduled-entered if planned[k][1]!="P"}
             for k in halted|pending:waits[k]+=1
@@ -347,10 +349,13 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
                 overspeed+=int(speed[k]>VMAX+.1)
                 if planned[k][1]=="A":speed_samples.append(speed[k])
             area_v+=len(halted)+len(pending);pending_ticks+=len(pending)
+            corridor_area+=sum(planned[k][1]=="A" for k in halted|pending)
+            transverse_area+=sum(planned[k][1]!="A" for k in halted|pending)
             area_p+=len(set(requested)-set(admitted))
             collisions+=api.simulation.getCollidingVehiclesNumber();teleports+=api.simulation.getStartingTeleportNumber()
         assert scheduled==set(planned)
-        assert not any((collisions,teleports,overspeed,conflict,red_entries))
+        assert not any((collisions,teleports,overspeed,conflict,red_entries,mid_empty_interruptions))
+        assert area_v==corridor_area+transverse_area and math.isclose(critical,sum(segment_critical))
         assert len(admitted)==len(completed)+sum(map(len,crossings))
         p_total=sum(r[1]=="P" for r in rows);v_total=len(rows)-p_total
         waiting=set(requested)-set(admitted)
@@ -368,6 +373,10 @@ def trajectory(api,net,meta,route,rows,family,seed,policy):
             "pedestrian_admitted":len(admitted),"pedestrian_crossing":sum(map(len,crossings)),"pedestrian_waiting":len(waiting),
             "pedestrian_unobserved_before_entry":unobserved,"vehicle_area":area_v,"pedestrian_area":area_p,
             "person_area":1.5*area_v+area_p,"pending_vehicle_seconds":pending_ticks,"critical_exposure":critical,
+            "corridor_vehicle_area":corridor_area,"transverse_vehicle_area":transverse_area,
+            "segment_critical_exposure":segment_critical[1:],
+            "midblock_pedestrians_completed":sum(planned[k][4]==mid for k in completed) if mid is not None else None,
+            "midblock_pedestrians_scheduled":sum(r[1]=="P" and r[4]==mid for r in rows) if mid is not None else None,
             "vehicle_max_wait":max(waits.values(),default=0),"pedestrian_max_wait":max(pw,default=0),
             "vehicle_p95_exited":percentile([waits[k] for k in done]),"pedestrian_p95_admitted":percentile(list(ped_wait.values())),
             "vehicle_deadline_violations":sum(v>VEH_LIMIT for v in waits.values()),
@@ -395,7 +404,7 @@ def case(api,root,family,seed,policies=POLICIES):
         "demand_sha256":sha256_file(route),"metrics":{p:trajectory(api,net,meta,route,rows,family,seed,p) for p in policies}}
 
 
-FIELDS=("person_area","vehicle_area","pedestrian_area","critical_exposure","vehicle_exited","corridor_exited",
+FIELDS=("person_area","vehicle_area","corridor_vehicle_area","transverse_vehicle_area","pedestrian_area","critical_exposure","vehicle_exited","corridor_exited",
     "pedestrian_completed","vehicle_uninserted","pending_vehicle_seconds","vehicle_max_wait","pedestrian_max_wait",
     "mean_corridor_travel_seconds","mean_corridor_stops","no_stop_share","mean_corridor_speed_mps","corridor_speed_cv",
     "phase_changes","storage_vetoes","critical_green_ticks","critical_yellow_ticks","critical_entries","compatible_admissions",
