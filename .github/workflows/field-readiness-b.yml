@@ -1,0 +1,38 @@
+name: FIELD-READINESS B private instruments
+on:
+  pull_request:
+    paths:
+      - 'backend/src/validation/field_*'
+      - 'backend/tests/test_field_readiness_b.py'
+      - 'docs/field-readiness/**'
+      - '.github/workflows/field-readiness-b.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  instruments:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          mkdir -p /tmp/fr-b
+          python -m pip freeze > /tmp/fr-b/environment.txt
+      - name: Offline fixture tests and unchanged regressions
+        run: python -m pytest -q tests/test_field_readiness_b.py tests/test_field_readiness.py tests/test_si13_field_packet.py tests/test_pimcat_c3_vision.py tests/test_pimcat_i2c_validation.py tests/test_pimcat_i2b_resilience.py tests/test_validation.py --junitxml=/tmp/fr-b/tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-readiness-b-tests
+          path: /tmp/fr-b/
+          retention-days: 30
