@@ -1,3 +1,4 @@
+import PilotStatus from '../components/PilotStatus.jsx'
 import React,{useMemo} from 'react'
 import {collectAlerts,executiveMetrics,formatMetric} from '../app/viewModel.js'
 import {operationalRows} from '../app/geography.js'
@@ -18,11 +19,12 @@ export default function VideowallView({data,healthStatus,realtime,intersections=
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Semáforos Inteligentes</h1>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <StatusPill value={data?.status||'loading'}/>
+        <StatusPill value={healthStatus==='error'?'error':data?.status||'loading'}/>
         <span className="status-pill border-sky-400/20 bg-sky-400/10 text-sky-200">Consultivo</span>
         <button type="button" className="button-secondary" onClick={()=>navigate?.('executive')}>Sair do videowall</button>
       </div>
     </header>
+    <PilotStatus compact data={data} healthStatus={healthStatus} navigate={navigate}/>
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
       <MetricCard label="Cruzamentos" value={formatMetric(registered)} detail="Cadastro geográfico"/>
       <MetricCard label="Fontes" value={formatMetric(metrics.sources)} detail={metrics.activeSources==null?'—':formatMetric(metrics.activeSources)+' ativas'}/>
@@ -32,7 +34,7 @@ export default function VideowallView({data,healthStatus,realtime,intersections=
       <MetricCard label="Alertas" value={formatMetric(alerts.filter(a=>a.severity!=='info').length)} detail="Condições técnicas"
         tone={alerts.some(a=>a.severity==='critical')?'critical':alerts.some(a=>a.severity==='warning')?'warning':'good'}/>
     </section>
-    <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[1.55fr_.75fr]">
+    <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[1.55fr_.75fr] xl:overflow-y-auto">
       <div className="surface-panel min-h-0 overflow-hidden">
         <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-semibold text-white">Cobertura geográfica</h2>
           <span className="text-xs text-slate-500">WGS84 · sem mapa-base externo</span></div>

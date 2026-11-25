@@ -1,3 +1,4 @@
+import PilotStatus from '../components/PilotStatus.jsx'
 import React, {useMemo} from 'react'
 import ForecastPanel from '../ForecastPanel.jsx'
 import HistoryPanel from '../components/HistoryPanel.jsx'
@@ -23,7 +24,7 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
   const rows = video.map(source => ({
     ...source, vision: vision.get(source.source_id), tracking: tracking.get(source.source_id), analytics: analytics.get(source.source_id)
   }))
-  const forecastSources=(data?.analytics?.sources||[]).filter(source=>source.live&&source.lines.length&&(!selected||source.intersection_code===selected))
+  const forecastSources=(data?.analytics?.sources||[]).filter(source=>source.live&&Array.isArray(source.lines)&&source.lines.length&&(!selected||source.intersection_code===selected))
   return <div className="space-y-6">
     <section className="flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -38,6 +39,8 @@ export default function OperationalView({ data, healthStatus, intersections=[], 
       </label>}
     </section>
 
+    <PilotStatus data={data} healthStatus={healthStatus} navigate={navigate}/>
+    {requested&&!catalog.some(row=>row.code===requested)&&<p className="rounded-lg border border-amber-400/30 p-3 text-sm text-amber-200">Cruzamento solicitado indisponível. Exibindo o contexto disponível, não o solicitado.</p>}
     {meta ? <Panel>
       <SectionHeading eyebrow="Contexto selecionado" title={meta.code+' — '+meta.name}
         description={meta.registered?'Cadastro geográfico explícito.':'Fonte operacional sem cadastro geográfico; localização não será inferida.'} />

@@ -1,4 +1,5 @@
 import React from 'react'
+import {matchingDecision} from '../app/pilotReadiness.js'
 import useQueueOptimization from '../useQueueOptimization.js'
 import {optimizationReason} from '../queueOptimization.js'
 import {EmptyState,Panel,SectionHeading,StatusPill} from './ui.jsx'
@@ -42,7 +43,7 @@ function DecisionCard({result}){
     {result.major_group&&result.minor_group&&<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <div className="queue-stat"><span>Fila maior</span><strong>{result.major_group.group_id}: {result.major_group.queue_length}</strong></div>
       <div className="queue-stat"><span>Fila menor</span><strong>{result.minor_group.group_id}: {result.minor_group.queue_length}</strong></div>
-      <div className="queue-stat"><span>X dinâmico seguro</span><strong>{result.dynamic_x_safe_vehicles??'—'}</strong></div>
+      <div className="queue-stat"><span>X dinâmico (modelo experimental)</span><strong>{result.dynamic_x_safe_vehicles??'—'}</strong></div>
       <div className="queue-stat"><span>Tempo analítico de limpeza</span><strong>{result.minor_clearance_seconds==null?'—':fmt(result.minor_clearance_seconds,1)+' s'}</strong></div>
     </div>}
     {result.minor_first&&result.major_first&&<div className="mt-4 overflow-x-auto">
@@ -62,7 +63,7 @@ export default function QueueOptimizationPanel({intersection}){
   const {data,status}=useQueueOptimization()
   if(status==='loading'&&!data) return <Panel><p className="text-sm text-slate-400">Carregando inteligência de filas...</p></Panel>
   if(status==='error'&&!data) return <Panel><EmptyState title="Inteligência de filas indisponível" description="A API protegida não respondeu; nenhum valor foi inferido pela interface."/></Panel>
-  const sources=(data?.queue?.sources||[]).filter(source=>!intersection||source.intersection_code===intersection)
+  const sources=(status==='current'?data?.queue?.sources||[]:[]).filter(source=>!intersection||source.intersection_code===intersection)
   const decisions=new Map((data?.optimization?.sources||[]).map(result=>[result.source_id,result]))
   return <Panel>
     <SectionHeading eyebrow="Queue Intelligence · SI-09" title={intersection?'Filas e X dinâmico — '+intersection:'Filas e X dinâmico'}
@@ -76,10 +77,8 @@ export default function QueueOptimizationPanel({intersection}){
             <span className="status-pill border-amber-400/25 bg-amber-400/10 text-amber-200">Uso comercial não autorizado</span>}
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{source.approaches.map(item=><ApproachCard key={item.approach_id} approach={item}/>)}</div>
-        <div className="mt-4"><DecisionCard result={decisions.get(source.source_id)||{
-          state:'abstain',preferred_in_simulation:'abstain',reason:'requires_two_service_groups'
-        }}/></div>
+        <div className="mt-4">{status==='current'&&matchingDecision(source,decisions.get(source.source_id))?<DecisionCard result={decisions.get(source.source_id)}/>:<EmptyState title="Preferência não confirmada" description="Resultado ausente, desatualizado ou de outro frame. Nenhuma causa de abstenção é inferida pela interface."/>}</div>
       </section>)}</div>}
-    {status==='error'&&data&&<p className="mt-3 text-xs text-amber-300">A atualização recente falhou; exibindo a última leitura válida.</p>}
+    {status==='error'&&data&&<p className="mt-3 text-xs text-amber-300">A atualização recente falhou; métricas e preferências ocultadas até nova leitura válida.</p>}
   </Panel>
 }

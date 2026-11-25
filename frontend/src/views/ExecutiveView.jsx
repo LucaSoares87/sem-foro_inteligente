@@ -1,3 +1,4 @@
+import PilotStatus from '../components/PilotStatus.jsx'
 import React, {useMemo, useState} from 'react'
 import { collectAlerts, executiveMetrics, formatMetric } from '../app/viewModel.js'
 import { filterIntersections, operationalRows } from '../app/geography.js'
@@ -30,6 +31,7 @@ export default function ExecutiveView({ data, healthStatus, realtime, intersecti
       </div>
     </section>
 
+    <PilotStatus data={data} healthStatus={healthStatus} navigate={navigate}/>
     <section aria-label="Indicadores executivos" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       <MetricCard label="Cruzamentos cadastrados" value={formatMetric(registered)} detail={intersectionStatus==='error'?'Registro geográfico indisponível.':'Fonte: cadastro geográfico explícito.'} />
       <MetricCard label="Fontes cadastradas" value={formatMetric(metrics.sources)} detail={metrics.activeSources == null ? 'Atividade sem leitura atual.' : formatMetric(metrics.activeSources) + ' ativas agora.'} tone="good" />

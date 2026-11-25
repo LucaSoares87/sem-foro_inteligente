@@ -1,3 +1,4 @@
+import ResearchEvidence from '../components/ResearchEvidence.jsx'
 import React from 'react'
 import DecisionPanel from '../DecisionPanel.jsx'
 import { Panel, SectionHeading } from '../components/ui.jsx'
@@ -17,6 +18,7 @@ export default function LaboratoryView({ data }) {
         <div className="info-block"><span>Decisão operacional</span><strong>Abstenção</strong><small>Até calibração e revisão independente.</small></div>
       </div>
     </Panel>
+    <ResearchEvidence/>
     <DecisionPanel availability={data?.decision} sources={data?.analytics?.sources || []} />
   </div>
 }

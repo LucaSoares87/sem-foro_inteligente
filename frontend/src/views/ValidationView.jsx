@@ -1,4 +1,5 @@
 import React from 'react'
+import {pilotReadiness} from '../app/pilotReadiness.js'
 import {displayStatus} from '../health.js'
 import useValidation from '../useValidation.js'
 import {EmptyState,Panel,SectionHeading,StatusPill} from '../components/ui.jsx'
@@ -27,6 +28,8 @@ export default function ValidationView(){
   if(status==='loading'&&!validation) return <p className="text-sm text-slate-400">Consultando scorecard de homologação...</p>
   if(status==='error'&&!validation) return <EmptyState title="Homologação indisponível" description="A API protegida de validação não respondeu. Verifique autenticação e disponibilidade."/>
   if(!validation) return <EmptyState title="Homologação indisponível" description="O contrato de validação ainda não foi carregado pelo backend."/>
+  const current=pilotReadiness(validation,status)
+  const approved=current.state==='ready'
   const runtime=validation.runtime_observation||{}
   const missing=new Set(validation.missing_evidence||[])
   return <div className="space-y-6">
@@ -37,21 +40,21 @@ export default function ValidationView(){
           <h1 className="text-3xl font-semibold tracking-tight text-white">Preparação do piloto supervisionado</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">O scorecard diferencia capacidade de software de evidência de campo. Nenhum gate é aprovado apenas porque a interface ou o motor estão funcionando.</p>
         </div>
-        <StatusPill value={validation.pilot_decision}/>
+        <StatusPill value={current.state==='unknown'?'error':approved?'ready_for_supervised_pilot':'blocked_by_field_evidence'}/>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <StatusPill value={validation.framework_ready?'ready':'error'} label={'Framework: '+(validation.framework_ready?'pronto':'inválido')}/>
+        <StatusPill value={status==='current'&&validation.framework_ready?'ready':'error'} label={'Framework: '+(status==='current'?(validation.framework_ready?'pronto':'inválido'):'sem leitura atual')}/>
         <span className="status-pill border-slate-700 bg-slate-800/60 text-slate-200">Atuação física: desabilitada</span>
         <span className="status-pill border-slate-700 bg-slate-800/60 text-slate-200">Decisão: abstenção</span>
       </div>
     </section>
 
     <Panel>
-      <SectionHeading eyebrow="Gate final" title={validation.pilot_ready?'Pronto para piloto supervisionado':'Ainda não aprovado para piloto'}
-        description={validation.pilot_ready
+      <SectionHeading eyebrow="Gate final" title={current.state==='unknown'?'Homologação sem leitura atual':approved?'Pronto para piloto supervisionado':'Ainda não aprovado para piloto'}
+        description={approved
           ? 'Todas as evidências obrigatórias foram declaradas e o aceite humano foi registrado.'
-          : (validation.missing_evidence?.length||0)+' evidência(s) obrigatória(s) ainda não estão prontas.'}/>
-      {!validation.pilot_ready&&<div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
+          : current.readyCount===null?'Não é possível confirmar os gates com leitura indisponível.':(current.total-current.readyCount)+' evidência(s) obrigatória(s) ainda não estão prontas.'}/>
+      {!approved&&<div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
         A aplicação permanece demonstrável e consultiva, mas o piloto não deve ser apresentado como homologado enquanto os gates de campo abaixo estiverem pendentes.
       </div>}
       {status==='error'&&validation&&<p className="mt-3 text-xs text-amber-300">A atualização recente do scorecard falhou; a última leitura válida permanece em tela.</p>}
@@ -64,7 +67,7 @@ export default function ValidationView(){
             <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{pilotRequired.has(gate.gate)?'Obrigatório para piloto':'Demonstração'}</p>
             <h2 className="mt-2 text-base font-semibold text-slate-100">{labels[gate.gate]||gate.gate}</h2>
           </div>
-          <StatusPill value={gate.state}/>
+          <StatusPill value={status==='current'?gate.state:'outdated'} label={status==='current'?undefined:'Leitura anterior'}/>
         </div>
         <p className="mt-3 min-h-10 text-xs leading-5 text-slate-500">{gate.note}</p>
         <dl className="mt-4 space-y-2 border-t border-slate-800 pt-3 text-xs">
