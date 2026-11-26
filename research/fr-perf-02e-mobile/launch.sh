@@ -41,7 +41,22 @@ export BASE="$base" EVIDENCE="$evidence" COMMIT="$commit"
 timeout --kill-after=10s 600s bash -euo pipefail <<'FIXTURES'
 bash research/fr-perf-02c/setup.sh "$BASE/runtime" "$EVIDENCE"
 "$BASE/runtime/infer/bin/python" -m pytest -q backend/tests/test_fr_perf_02b.py backend/tests/test_fr_perf_02c.py backend/tests/test_fr_perf_02e_diag.py backend/tests/test_fr_perf_02e_semantic.py backend/tests/test_fr_perf_02e_obs.py backend/tests/test_fr_perf_02e_obs_r.py scripts/test_lock_from_report.py research/fr-perf-02e-mobile/test_mobile_review.py research/fr-perf-02e-mobile/test_mobile_host.py --junitxml="$EVIDENCE/fixtures.xml"
-"$BASE/runtime/infer/bin/python" research/fr-perf-02e-mobile/mobile_host.py fixtures --root "$PWD" --runtime "$BASE/runtime" --evidence "$EVIDENCE" --commit "$COMMIT"
+# Workers inherit cwd, not PYTHONPATH (the production child_environment whitelist).
+# Keep the whitelist unchanged; use absolute paths for the research driver.
+cd "$BASE/checkout/backend"
+"$BASE/runtime/infer/bin/python" - <<'IPC_IMPORT_CHECK'
+import subprocess, sys
+from src.video.manager import child_environment
+subprocess.run([sys.executable, "-c",
+    "import src.benchmarking.fr_perf_02b_preflight_r; import src.benchmarking.fr_perf_02b"],
+    env=child_environment(), check=True, timeout=20)
+print("IPC module import in isolated child: OK", flush=True)
+IPC_IMPORT_CHECK
+"$BASE/runtime/infer/bin/python" "$BASE/checkout/research/fr-perf-02e-mobile/mobile_host.py" fixtures --root "$BASE/checkout" --runtime "$BASE/runtime" --evidence "$EVIDENCE" --commit "$COMMIT"
 FIXTURES
 # No acquisition until authenticated Private port + plan confirmation. 25 min total wall cap includes review.
-timeout --kill-after=10s 1500s "$base/runtime/infer/bin/python" research/fr-perf-02e-mobile/mobile_host.py review --root "$PWD" --runtime "$base/runtime" --evidence "$evidence" --commit "$commit"
+# Both fixture and observation workers must inherit the same backend cwd.
+(
+  cd "$base/checkout/backend"
+  timeout --kill-after=10s 1500s "$base/runtime/infer/bin/python" "$base/checkout/research/fr-perf-02e-mobile/mobile_host.py" review --root "$base/checkout" --runtime "$base/runtime" --evidence "$evidence" --commit "$commit"
+)
