@@ -1,4 +1,5 @@
 """Recreate the historical source layout and compare every JUnit case and outcome."""
+import base64
 import hashlib
 import json
 import os
@@ -20,7 +21,7 @@ def results(path):
                           if case.find(tag) is not None), "passed"))
                    for case in ET.parse(path).iter("testcase"))
 
-def main():
+def main(proofs_only=False):
     failures = []
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
@@ -42,11 +43,16 @@ def main():
             ("I1G", root, ["test_release.py"], "release-tests-final.xml"),
         ]
         for name, cwd, tests, baseline in suites:
+            if proofs_only and name == "Originais":
+                continue
             out = root / (name + ".xml")
             proc = subprocess.run([sys.executable, "-m", "pytest", "-q", "-rs",
                                    "--junitxml", str(out), *tests], cwd=cwd,
                                   env={**os.environ, "SI11D_SUMO_REQUIRED": "0",
                                        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"})
+            if proofs_only and out.is_file():
+                data = out.read_bytes()
+                print("JUNIT_PROOF", name, hashlib.sha256(data).hexdigest(), base64.b64encode(data).decode(), flush=True)
             expected = results(root / baseline)
             actual = results(out) if out.exists() else Counter()
             print(name, "observed outcomes", dict(Counter(k[2] for k in actual.elements())), flush=True)
@@ -55,7 +61,10 @@ def main():
                 failures.append(name)
     if failures:
         raise SystemExit("Regression mismatch: " + ", ".join(failures))
+    if proofs_only:
+        print("Three JUnit proofs verified")
+        return
     print("I1G REGRESSION PASS: 149 passed, 3 expected skips, 152 matched identities and outcomes")
 
 if __name__ == "__main__":
-    main()
+    main(proofs_only=sys.argv[1:] == ["--three-proofs"])
