@@ -1,0 +1,66 @@
+name: I1G SUMO smokes and frozen parity
+on:
+  push:
+    branches: [research/i1g-sumo-parity-once]
+permissions:
+  contents: read
+jobs:
+  install:
+    if: github.event.created && github.run_attempt == 1 && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12.16'
+          cache: ''
+      - name: Stage the 42 exact wheels and verify their published bytes
+        working-directory: research/i1g-wheelhouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '2357835c3f6dba81ab99fb06df53a49501632ca7b83bd39b49185f38d370ecfc  I1G-cp312-linux-x86_64.lock' | sha256sum -c -
+          mkdir "$RUNNER_TEMP/wheelhouse"
+          python - <<'PY'
+          import json
+          import os
+          from concurrent.futures import ThreadPoolExecutor
+          from pathlib import Path
+          from verify import verify
+          rows = json.loads(Path("inventory.json").read_text())
+          directory = Path(os.environ["RUNNER_TEMP"]) / "wheelhouse"
+          with ThreadPoolExecutor(max_workers=6) as pool:
+              list(pool.map(lambda row: verify(row, directory), rows))
+          assert len(list(directory.glob("*.whl"))) == len(rows) == 42
+          print("Verified and staged 42 wheels")
+          PY
+      - name: Install and check in an isolated network namespace
+        working-directory: research/i1g-wheelhouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo unshare --net -- runuser -u "$(id -un)" -- bash -euo pipefail -s -- "$(command -v python)" "$RUNNER_TEMP" <<'OFFLINE'
+          "$1" -m venv "$2/i1g-venv"
+          py="$2/i1g-venv/bin/python"
+          "$py" -VV
+          "$py" -m pip --version
+          "$py" -m pip --isolated --disable-pip-version-check install --no-cache-dir --no-index --only-binary=:all: --require-hashes --find-links "$2/wheelhouse" -r I1G-cp312-linux-x86_64.lock
+          "$py" -m pip --isolated --disable-pip-version-check check
+          "$py" - <<'PY'
+          import json
+          from importlib.metadata import version
+          from pathlib import Path
+          rows = json.loads(Path("inventory.json").read_text())
+          for row in rows:
+              assert version(row["name"]) == row["version"], row["name"]
+          print("I1G OFFLINE INSTALL PASS: 42/42 installed versions match")
+          PY
+          export PATH="$2/i1g-venv/bin:$PATH"
+          SUMO_HOME=$("$py" -c 'import sumo; print(sumo.SUMO_HOME)')
+          export SUMO_HOME
+          netconvert --version
+          "$py" ../i1g-regression/sumo_parity.py
+          OFFLINE
